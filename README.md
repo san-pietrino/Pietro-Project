@@ -2,7 +2,7 @@
 
 Pietro is a local web app that helps neighbors share items with each other. Think of it as a community library for physical objects!
 
-## What It Does
+## What It Does test
 
 - **Borrow**: Search for items your neighbors have and request to borrow them
 - **Lend**: List items you own and let others borrow them
