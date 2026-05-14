@@ -15,6 +15,8 @@ Pietro is a local web app that helps neighbors share items with each other. Thin
 
 ## How to Start
 
+a
+
 ### On macOS:
 
 ```bash
