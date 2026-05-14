@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ item.name }} - Pietro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Pietro</h1>
+            <nav>
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('search') }}">Search</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </nav>
+        </header>
+        
+        <main>
+            <section class="item-detail-section">
+                <div class="item-detail-card">
+                    <h2>{{ item.name }}</h2>
+                    <p class="item-description">{{ item.description }}</p>
+                    <p class="owner-info">Owner: {{ item.owner }}</p>
+                    <p class="location-info">Location: {{ item.owner_location }}</p>
+                    <p class="status-info">Status: <span class="status-badge {{ item.status }}">{{ item.status }}</span></p>
+                    
+                    {% if item.status == 'available' %}
+                    <form method="POST" action="{{ url_for('borrow_item', item_id=item.id) }}">
+                        <button type="submit" class="btn-primary btn-borrow">Request to Borrow</button>
+                    </form>
+                    {% else %}
+                    <p class="unavailable-message">This item is currently unavailable</p>
+                    {% endif %}
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            <p>Made with ❤️ for community sharing</p>
+        </footer>
+    </div>
+</body>
+</html>

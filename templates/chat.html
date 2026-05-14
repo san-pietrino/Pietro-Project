@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - Pietro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Pietro</h1>
+            <nav>
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </nav>
+        </header>
+        
+        <main>
+            <section class="chat-section">
+                <h2>💬 Chat</h2>
+                <p class="chat-info">Item: {{ request.item_name }} | Borrower: {{ request.borrower_name }}</p>
+                
+                <div class="chat-messages">
+                    {% if messages %}
+                        {% for msg in messages %}
+                        <div class="message {% if msg.sender_id == session['user_id'] %}own{% else %}other{% endif %}">
+                            <span class="sender">{{ msg.sender_name }}</span>
+                            <p class="message-content">{{ msg.content }}</p>
+                            <span class="timestamp">{{ msg.created_at }}</span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="no-messages">No messages yet. Start the conversation!</p>
+                    {% endif %}
+                </div>
+                
+                <form method="POST" action="{{ url_for('send_message', request_id=request_id) }}" class="chat-form">
+                    <input type="text" name="message" placeholder="Type your message..." required>
+                    <button type="submit" class="btn-primary">Send</button>
+                </form>
+            </section>
+        </main>
+        
+        <footer>
+            <p>Made with ❤️ for community sharing</p>
+        </footer>
+    </div>
+</body>
+</html>

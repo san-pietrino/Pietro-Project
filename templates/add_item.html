@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Item - Pietro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Pietro</h1>
+            <nav>
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('search') }}">Search</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </nav>
+        </header>
+        
+        <main>
+            <section class="add-item-section">
+                <h2>➕ Add an Item to Lend</h2>
+                <p class="form-description">Share what you have with your community!</p>
+                
+                <form method="POST" action="{{ url_for('add_item') }}" class="add-item-form">
+                    <div class="form-group">
+                        <label for="name">Item Name</label>
+                        <input type="text" id="name" name="name" required placeholder="e.g., Screwdriver Set">
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" rows="4" placeholder="Describe your item, its condition, etc."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="keywords">Keywords</label>
+                        <input type="text" id="keywords" name="keywords" placeholder="e.g., tools, screwdriver, repair">
+                        <small>Separate keywords with commas</small>
+                    </div>
+                    <button type="submit" class="btn-primary">Add Item</button>
+                </form>
+            </section>
+        </main>
+        
+        <footer>
+            <p>Made with ❤️ for community sharing</p>
+        </footer>
+    </div>
+</body>
+</html>

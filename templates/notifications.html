@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - Pietro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Pietro</h1>
+            <nav>
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('search') }}">Search</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </nav>
+        </header>
+        
+        <main>
+            <section class="notifications-section">
+                <h2>🔔 Notifications</h2>
+                <p class="notifications-info">Items matching your keywords</p>
+                
+                {% if items %}
+                <div class="item-list">
+                    {% for item in items %}
+                    <div class="item-card">
+                        <h3>{{ item.name }}</h3>
+                        <p>{{ item.description }}</p>
+                        <p class="owner-info">Owner: {{ item.owner }}</p>
+                        <a href="{{ url_for('item_detail', item_id=item.id) }}" class="btn-primary">View & Borrow</a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="empty-state">No new notifications. Update your keywords in your profile to get notified!</p>
+                {% endif %}
+            </section>
+        </main>
+        
+        <footer>
+            <p>Made with ❤️ for community sharing</p>
+        </footer>
+    </div>
+</body>
+</html>

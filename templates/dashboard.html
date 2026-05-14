@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Pietro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Pietro</h1>
+            <p class="tagline">Welcome, {{ username }}!</p>
+            <nav>
+                <a href="{{ url_for('search') }}">Search Items</a>
+                <a href="{{ url_for('add_item') }}">Add Item</a>
+                <a href="{{ url_for('notifications') }}">Notifications</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </nav>
+        </header>
+        
+        <main>
+            <section class="dashboard-section">
+                <h2>📦 My Items to Lend</h2>
+                {% if my_items %}
+                <div class="item-list">
+                    {% for item in my_items %}
+                    <div class="item-card">
+                        <h3>{{ item.name }}</h3>
+                        <p>{{ item.description }}</p>
+                        <span class="status-badge {{ item.status }}">{{ item.status }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="empty-state">You haven't added any items yet. <a href="{{ url_for('add_item') }}">Add your first item!</a></p>
+                {% endif %}
+            </section>
+            
+            <section class="dashboard-section">
+                <h2>📬 Requests for My Items</h2>
+                {% if requests_for_me %}
+                <div class="request-list">
+                    {% for req in requests_for_me %}
+                    <div class="request-card">
+                        <h3>{{ req.item_name }}</h3>
+                        <p>Requested by: {{ req.borrower }}</p>
+                        <p>Status: <span class="status-badge {{ req.status }}">{{ req.status }}</span></p>
+                        <p>Date: {{ req.created_at }}</p>
+                        {% if req.status == 'pending' %}
+                        <form method="POST" action="{{ url_for('respond_request', request_id=req.id) }}" class="respond-form">
+                            <button type="submit" name="action" value="accept" class="btn-accept">Accept</button>
+                            <button type="submit" name="action" value="decline" class="btn-decline">Decline</button>
+                        </form>
+                        {% elif req.status == 'accepted' %}
+                        <a href="{{ url_for('chat', request_id=req.id) }}" class="btn-chat">Open Chat</a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="empty-state">No requests yet</p>
+                {% endif %}
+            </section>
+            
+            <section class="dashboard-section">
+                <h2>📋 My Borrowing Requests</h2>
+                {% if my_requests %}
+                <div class="request-list">
+                    {% for req in my_requests %}
+                    <div class="request-card">
+                        <h3>{{ req.item_name }}</h3>
+                        <p>Status: <span class="status-badge {{ req.status }}">{{ req.status }}</span></p>
+                        <p>Date: {{ req.created_at }}</p>
+                        {% if req.status == 'accepted' %}
+                        <a href="{{ url_for('chat', request_id=req.id) }}" class="btn-chat">Open Chat</a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="empty-state">No borrowing requests yet. <a href="{{ url_for('search') }}">Search for items!</a></p>
+                {% endif %}
+            </section>
+        </main>
+        
+        <footer>
+            <p>Made with ❤️ for community sharing</p>
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Item - Pietro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Pietro</h1>
+            <nav>
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('search') }}">Search</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </nav>
+        </header>
+        
+        <main>
+            <section class="request-form-section">
+                <h2>📝 Request an Item</h2>
+                <p class="form-description">Couldn't find what you're looking for? Let us know!</p>
+                
+                <form method="POST" action="{{ url_for('request_item') }}" class="request-form">
+                    <div class="form-group">
+                        <label for="item_name">Item Name</label>
+                        <input type="text" id="item_name" name="item_name" required placeholder="What item do you need?">
+                    </div>
+                    <div class="form-group">
+                        <label for="keywords">Keywords</label>
+                        <input type="text" id="keywords" name="keywords" placeholder="e.g., power tool, drill, hammer">
+                        <small>Help others find items matching your need</small>
+                    </div>
+                    <button type="submit" class="btn-primary">Submit Request</button>
+                </form>
+            </section>
+        </main>
+        
+        <footer>
+            <p>Made with ❤️ for community sharing</p>
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,21 @@
+It's called Pietro
+Si chiama Pietro (It's called Pietro) is a web app designed to facilitate organized peer-to-peer lending within a city.
+The service uses a friendly and informal tone of voice, both in the aesthetic and in the language
+1. Authentication
+The user accesses the app and is presented with a login form to enter their username and password. The system compares these credentials with the database
+If a match is found The system displays the message You are successfully logged in and redirects the user to their personalized dashboard.
+If no match is found The user is redirected to the registration page.
+2. Item Search
+Once logged in, the user can search for a specific item (e.g., a screwdriver) by typing it into the search bar. The system queries the item database
+If the item exists The system checks its current availability.
+Not available The system displays The requested item is currently unavailable.
+Available The system shows a list of all available screwdrivers, sorted by proximity to the location provided by the user during registration.
+If the item does not exist The user is shown a Request Form.
+The user fills out the request and selects or adds keywords related to the item.
+The system posts this request on the public dashboard for all users to see.
+The system cross-references these keywords with the database. If a match is found, a notification is sent to all users who selected those specific keywords during their registration. Otherwise, no notification is sent.
+3. Borrowing Process
+When a user selects a specific screwdriver from the list
+The system sends an automated message to the owner asking them to accept or decline the request (the owner can choose from a set of pre-defined responses).
+If accepted The system opens a chat between the borrower and the owner.
+If declined The item’s status is set to temporarily suspended in the database (it will no longer appear in search results). The borrower is notified and redirected back to the list of available items to make another choice.
