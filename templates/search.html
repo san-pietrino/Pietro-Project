@@ -5,6 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search - Pietro</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .unavailable-message {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .pending-requests {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .request-form-inline {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .category-option {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+        .category-option input[type="radio"] {
+            display: none;
+        }
+        .category-option input[type="radio"]:checked + label {
+            background-color: #1976d2;
+            color: white;
+            border-color: #1976d2;
+        }
+        .category-option label {
+            cursor: pointer;
+            display: block;
+            margin: 0;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -26,23 +71,74 @@
                 </form>
                 
                 {% if query %}
-                    <p class="search-results-info">Showing results for "{{ query }}"</p>
+                    {% if message %}
+                    <div class="unavailable-message">
+                        <p>{{ message }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if requested_items %}
+                    <div class="pending-requests">
+                        <h3>📋 Pending Requests</h3>
+                        <div class="item-list">
+                            {% for item in requested_items %}
+                            <div class="item-card">
+                                <h4>{{ item.name }}</h4>
+                                {% if item.description %}
+                                <p>{{ item.description }}</p>
+                                {% endif %}
+                                <p class="owner-info">Requested by someone</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
                     
                     {% if items %}
                     <div class="item-list">
+                        <h3>📦 Available Items</h3>
                         {% for item in items %}
                         <div class="item-card">
                             <h3>{{ item.name }}</h3>
+                            <p><strong>Category:</strong> {{ item.category }}</p>
+                            {% if item.description %}
                             <p>{{ item.description }}</p>
+                            {% endif %}
                             <p class="owner-info">Owner: {{ item.owner }} ({{ item.owner_location }})</p>
                             <a href="{{ url_for('item_detail', item_id=item.id) }}" class="btn-primary">View & Borrow</a>
                         </div>
                         {% endfor %}
                     </div>
-                    {% else %}
-                    <div class="no-results">
-                        <p>No items found for "{{ query }}"</p>
-                        <a href="{{ url_for('request_item') }}">Request this item</a>
+                    {% elif show_request_form %}
+                    <div class="request-form-inline">
+                        <h3>Didn't find what you need?</h3>
+                        <p>Submit a request and users interested in this category will be notified!</p>
+                        <form method="POST" action="{{ url_for('request_item') }}">
+                            <div class="form-group">
+                                <label for="item_name">Item Name</label>
+                                <input type="text" id="item_name" name="item_name" required placeholder="{{ query }}">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Category</label>
+                                <div style="display: flex; flex-wrap: wrap;">
+                                    {% set categories_list = ['Tools', 'Kitchen', 'Electronics', 'Study & Office', 'Sports & Outdoor', 'Events & Parties', 'Creative & Hobby', 'Gaming', 'Home & Living', 'Mobility', 'Baby & Child', 'Pets'] %}
+                                    {% for category in categories_list %}
+                                    <div class="category-option">
+                                        <input type="radio" id="cat_{{ loop.index }}" name="category" value="{{ category }}" required>
+                                        <label for="cat_{{ loop.index }}">{{ category }}</label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="description">Description</label>
+                                <textarea id="description" name="description" rows="3" placeholder="Describe what you're looking for..."></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn-primary">Submit Request</button>
+                        </form>
                     </div>
                     {% endif %}
                 {% else %}

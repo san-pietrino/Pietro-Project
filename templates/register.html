@@ -5,6 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - Pietro</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .error-message {
+            color: #d32f2f;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #ffebee;
+            border-radius: 4px;
+        }
+        .password-wrapper {
+            position: relative;
+        }
+        .toggle-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+        .categories-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .choice-chip {
+            display: inline-block;
+            padding: 8px 16px;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            background-color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+        .choice-chip input[type="checkbox"] {
+            display: none;
+        }
+        .choice-chip input[type="checkbox"]:checked + label {
+            background-color: #1976d2;
+            color: white;
+            border-color: #1976d2;
+        }
+        .choice-chip label {
+            cursor: pointer;
+            margin: 0;
+            display: block;
+        }
+        .chip-label-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -25,8 +81,22 @@
                         <input type="text" id="username" name="username" required placeholder="Choose a username">
                     </div>
                     <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" required placeholder="Enter your email">
+                    </div>
+                    <div class="form-group">
                         <label for="password">Password</label>
-                        <input type="password" id="password" name="password" required placeholder="Choose a password">
+                        <div class="password-wrapper">
+                            <input type="password" id="password" name="password" required placeholder="Choose a password">
+                            <button type="button" class="toggle-btn" onclick="togglePasswordVisibility('password')">👁️</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="password_confirm">Confirm Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="password_confirm" name="password_confirm" required placeholder="Confirm your password">
+                            <button type="button" class="toggle-btn" onclick="togglePasswordVisibility('password_confirm')">👁️</button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="location">Your Location</label>
@@ -34,9 +104,17 @@
                         <small>Help others find items near you</small>
                     </div>
                     <div class="form-group">
-                        <label for="keywords">Keywords of Interest</label>
-                        <input type="text" id="keywords" name="keywords" placeholder="e.g., tools, electronics, sports">
-                        <small>Get notified when items matching these keywords are added</small>
+                        <label>Categories of Interest</label>
+                        <small>Select at least one category to receive notifications</small>
+                        <div class="categories-container">
+                            {% set categories_list = ['Tools', 'Kitchen', 'Electronics', 'Study & Office', 'Sports & Outdoor', 'Events & Parties', 'Creative & Hobby', 'Gaming', 'Home & Living', 'Mobility', 'Baby & Child', 'Pets'] %}
+                            {% for category in categories_list %}
+                            <div class="choice-chip">
+                                <input type="checkbox" id="cat_{{ loop.index }}" name="categories" value="{{ category }}">
+                                <label for="cat_{{ loop.index }}">{{ category }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
                     <button type="submit" class="btn-primary">Sign Up</button>
                 </form>
@@ -48,5 +126,29 @@
             <p>Made with ❤️ for community sharing</p>
         </footer>
     </div>
+    
+    <script>
+        function togglePasswordVisibility(fieldId) {
+            const field = document.getElementById(fieldId);
+            const button = event.target;
+            if (field.type === 'password') {
+                field.type = 'text';
+                button.textContent = '🙈';
+            } else {
+                field.type = 'password';
+                button.textContent = '👁️';
+            }
+        }
+        
+        // Style choice chips on click
+        document.querySelectorAll('.choice-chip').forEach(chip => {
+            chip.addEventListener('click', function(e) {
+                if (e.target.tagName !== 'INPUT') {
+                    const checkbox = this.querySelector('input[type="checkbox"]');
+                    checkbox.checked = !checkbox.checked;
+                }
+            });
+        });
+    </script>
 </body>
 </html>

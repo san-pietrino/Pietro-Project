@@ -5,6 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Item - Pietro</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .error {
+            color: #d32f2f;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .message {
+            color: #1565c0;
+            background-color: #e3f2fd;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .suggested-category {
+            background-color: #fff3cd;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            border-left: 4px solid #ffc107;
+        }
+        .categories-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .category-option {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .category-option input[type="radio"] {
+            display: none;
+        }
+        .category-option input[type="radio"]:checked + label {
+            background-color: #1976d2;
+            color: white;
+            border-color: #1976d2;
+        }
+        .category-option label {
+            cursor: pointer;
+            display: block;
+            margin: 0;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -22,20 +72,53 @@
                 <h2>➕ Add an Item to Lend</h2>
                 <p class="form-description">Share what you have with your community!</p>
                 
+                {% if error %}
+                <div class="error">{{ error }}</div>
+                {% endif %}
+                
+                {% if message %}
+                <div class="message">{{ message }}</div>
+                {% endif %}
+                
                 <form method="POST" action="{{ url_for('add_item') }}" class="add-item-form">
                     <div class="form-group">
-                        <label for="name">Item Name</label>
-                        <input type="text" id="name" name="name" required placeholder="e.g., Screwdriver Set">
+                        <label for="name">Item Name *</label>
+                        <input type="text" id="name" name="name" required placeholder="e.g., Screwdriver Set" value="{{ name or '' }}">
                     </div>
+                    
+                    <div class="form-group">
+                        <label>Category *</label>
+                        {% if suggested_category %}
+                        <div class="suggested-category">
+                            <strong>Suggested category:</strong> {{ suggested_category }}
+                        </div>
+                        {% endif %}
+                        <div class="categories-list">
+                            {% for category in categories %}
+                            <div class="category-option">
+                                <input type="radio" id="cat_{{ loop.index }}" name="category" value="{{ category }}" required>
+                                <label for="cat_{{ loop.index }}">{{ category }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
                     <div class="form-group">
                         <label for="description">Description</label>
                         <textarea id="description" name="description" rows="4" placeholder="Describe your item, its condition, etc."></textarea>
+                        <small>Optional - helps others understand your item better</small>
                     </div>
+                    
                     <div class="form-group">
-                        <label for="keywords">Keywords</label>
-                        <input type="text" id="keywords" name="keywords" placeholder="e.g., tools, screwdriver, repair">
-                        <small>Separate keywords with commas</small>
+                        <label for="photo">Photo</label>
+                        <input type="file" id="photo" name="photo" accept="image/*">
+                        <small>Optional - upload a photo of your item</small>
                     </div>
+                    
+                    {% if suggested_category %}
+                    <input type="hidden" name="confirmed" value="true">
+                    {% endif %}
+                    
                     <button type="submit" class="btn-primary">Add Item</button>
                 </form>
             </section>

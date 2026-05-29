@@ -22,36 +22,122 @@ def get_db_connection():
     return conn
 
 
+def schema_exists():
+    """Check if the new schema exists (has email column in users table)."""
+    try:
+        conn = sqlite3.connect(DATABASE)
+        cursor = conn.cursor()
+        cursor.execute('PRAGMA table_info(users)')
+        columns = [row[1] for row in cursor.fetchall()]
+        conn.close()
+        return 'email' in columns
+    except:
+        return False
+
+
+def migrate_database():
+    """Migrate old database schema to new one."""
+    try:
+        conn = sqlite3.connect(DATABASE)
+        cursor = conn.cursor()
+        
+        # Check if users table exists
+        cursor.execute('''SELECT name FROM sqlite_master WHERE type='table' AND name='users' ''')
+        if not cursor.fetchone():
+            conn.close()
+            return  # No old database
+        
+        # Rename old table
+        cursor.execute('ALTER TABLE users RENAME TO users_old')
+        
+        # Create new users table with correct schema
+        cursor.execute('''
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE,
+                password TEXT NOT NULL,
+                location TEXT,
+                categories TEXT
+            )
+        ''')
+        
+        # Migrate data from old table
+        cursor.execute('''
+            INSERT INTO users (id, username, password, location, categories)
+            SELECT id, username, password, location, keywords FROM users_old
+        ''')
+        
+        # Drop old table
+        cursor.execute('DROP TABLE users_old')
+        
+        # Do the same for items table if needed
+        cursor.execute('''SELECT name FROM sqlite_master WHERE type='table' AND name='items' ''')
+        if cursor.fetchone():
+            cursor.execute('PRAGMA table_info(items)')
+            columns = [row[1] for row in cursor.fetchall()]
+            
+            if 'category' not in columns:
+                cursor.execute('ALTER TABLE items RENAME TO items_old')
+                cursor.execute('''
+                    CREATE TABLE items (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL,
+                        description TEXT,
+                        owner_id INTEGER NOT NULL,
+                        category TEXT,
+                        status TEXT DEFAULT 'available',
+                        photo TEXT,
+                        FOREIGN KEY (owner_id) REFERENCES users (id)
+                    )
+                ''')
+                cursor.execute('''
+                    INSERT INTO items (id, name, description, owner_id, status, photo)
+                    SELECT id, name, description, owner_id, status, NULL FROM items_old
+                ''')
+                cursor.execute('DROP TABLE items_old')
+        
+        conn.commit()
+        conn.close()
+        print("Database migration completed successfully")
+    except Exception as e:
+        print(f"Migration error: {e}")
+
+
 def init_db():
-    """Initialize the database with required tables."""
+    """Initialize the database with required tables and migrate schema."""
+    # Check if migration is needed
+    if not schema_exists():
+        migrate_database()
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Users table
+    # Create tables if they don't exist
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE,
             password TEXT NOT NULL,
             location TEXT,
-            keywords TEXT
+            categories TEXT
         )
     ''')
     
-    # Items table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             description TEXT,
             owner_id INTEGER NOT NULL,
+            category TEXT,
             status TEXT DEFAULT 'available',
-            keywords TEXT,
+            photo TEXT,
             FOREIGN KEY (owner_id) REFERENCES users (id)
         )
     ''')
     
-    # Requests table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS requests (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,7 +150,6 @@ def init_db():
         )
     ''')
     
-    # Messages table for chat
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -74,6 +159,17 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (request_id) REFERENCES requests (id),
             FOREIGN KEY (sender_id) REFERENCES users (id)
+        )
+    ''')
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            token TEXT UNIQUE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
     
@@ -94,37 +190,71 @@ def index():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     """Registration page - handles new user creation."""
+    categories_list = [
+        'Tools', 'Kitchen', 'Electronics', 'Study & Office', 'Sports & Outdoor',
+        'Events & Parties', 'Creative & Hobby', 'Gaming', 'Home & Living',
+        'Mobility', 'Baby & Child', 'Pets'
+    ]
+    
     if request.method == 'POST':
         username = request.form.get('username')
+        email = request.form.get('email')
         password = request.form.get('password')
+        password_confirm = request.form.get('password_confirm')
         location = request.form.get('location')
-        keywords = request.form.get('keywords', '')
+        categories = request.form.getlist('categories')
         
-        if not username or not password:
-            return render_template('register.html', error='Username and password are required')
+        # Validation
+        if not username or not email or not password:
+            return render_template('register.html', 
+                                 error='Username, email and password are required',
+                                 categories=categories_list)
+        
+        if password != password_confirm:
+            return render_template('register.html', 
+                                 error='Passwords do not match',
+                                 categories=categories_list)
+        
+        if not categories:
+            return render_template('register.html', 
+                                 error='You must select at least one category of interest',
+                                 categories=categories_list)
         
         conn = get_db_connection()
         try:
-            # Check if username already exists
             cursor = conn.cursor()
+            
+            # Check if username already exists
             cursor.execute('SELECT id FROM users WHERE username = ?', (username,))
             if cursor.fetchone():
-                return render_template('register.html', error='Username already exists')
+                return render_template('register.html', 
+                                     error='Username already exists',
+                                     categories=categories_list)
+            
+            # Check if email already exists
+            cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
+            if cursor.fetchone():
+                return render_template('register.html', 
+                                     error='Email already exists',
+                                     categories=categories_list)
             
             # Create new user
             hashed_password = generate_password_hash(password)
+            categories_str = ','.join(categories)
             cursor.execute(
-                'INSERT INTO users (username, password, location, keywords) VALUES (?, ?, ?, ?)',
-                (username, hashed_password, location, keywords)
+                'INSERT INTO users (username, email, password, location, categories) VALUES (?, ?, ?, ?, ?)',
+                (username, email, hashed_password, location, categories_str)
             )
             conn.commit()
             return redirect(url_for('login'))
         except Exception as e:
-            return render_template('register.html', error=str(e))
+            return render_template('register.html', 
+                                 error=str(e),
+                                 categories=categories_list)
         finally:
             conn.close()
     
-    return render_template('register.html')
+    return render_template('register.html', categories=categories_list)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -136,16 +266,31 @@ def login():
         
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT id, username, password FROM users WHERE username = ?', (username,))
-        user = cursor.fetchone()
+        
+        # Try to get user - handle both old and new schema
+        try:
+            cursor.execute('SELECT id, username, password, email FROM users WHERE username = ? OR email = ?', (username, username))
+            user = cursor.fetchone()
+        except sqlite3.OperationalError:
+            # Fallback for old schema without email column
+            cursor.execute('SELECT id, username, password FROM users WHERE username = ?', (username,))
+            user = cursor.fetchone()
+        
         conn.close()
         
-        if user and check_password_hash(user['password'], password):
+        if not user:
+            # User not found - redirect to registration
+            return redirect(url_for('register'))
+        
+        if check_password_hash(user['password'], password):
             session['user_id'] = user['id']
             session['username'] = user['username']
+            session['login_success'] = True  # Flag to show success message on dashboard
+            # Success - redirect to dashboard
             return redirect(url_for('dashboard'))
         else:
-            return redirect(url_for('register'))
+            # Password is wrong
+            return render_template('login.html', error='The password is wrong. Try again')
     
     return render_template('login.html')
 
@@ -157,6 +302,85 @@ def logout():
     return redirect(url_for('login'))
 
 
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Password recovery form."""
+    if request.method == 'POST':
+        email = request.form.get('email')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
+        user = cursor.fetchone()
+        
+        if user:
+            # Generate a unique token for password reset
+            import secrets
+            token = secrets.token_urlsafe(32)
+            cursor.execute('''
+                INSERT INTO password_reset_tokens (user_id, token, expires_at)
+                VALUES (?, ?, datetime('now', '+1 hour'))
+            ''', (user['id'], token))
+            conn.commit()
+            
+            # TODO: Send email with reset link
+            # For now, show the token (in production, send via email)
+            reset_link = url_for('reset_password', token=token, _external=True)
+            conn.close()
+            return render_template('forgot_password.html', 
+                                 message=f'Password reset link: {reset_link}')
+        
+        conn.close()
+        return render_template('forgot_password.html', 
+                             message='If an account with that email exists, you will receive a password reset link.')
+    
+    return render_template('forgot_password.html')
+
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    """Reset password using token."""
+    if request.method == 'POST':
+        new_password = request.form.get('password')
+        password_confirm = request.form.get('password_confirm')
+        
+        if not new_password or new_password != password_confirm:
+            return render_template('reset_password.html', 
+                                 token=token,
+                                 error='Passwords do not match')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Verify token is valid and not expired
+        cursor.execute('''
+            SELECT user_id FROM password_reset_tokens
+            WHERE token = ? AND expires_at > datetime('now')
+        ''', (token,))
+        reset_token = cursor.fetchone()
+        
+        if not reset_token:
+            conn.close()
+            return render_template('reset_password.html', 
+                                 error='Invalid or expired token')
+        
+        # Update password
+        hashed_password = generate_password_hash(new_password)
+        cursor.execute('UPDATE users SET password = ? WHERE id = ?', 
+                      (hashed_password, reset_token['user_id']))
+        
+        # Remove used token
+        cursor.execute('DELETE FROM password_reset_tokens WHERE token = ?', (token,))
+        
+        conn.commit()
+        conn.close()
+        
+        return render_template('reset_password.html', 
+                             message='Password reset successfully. You can now login with your new password.')
+    
+    return render_template('reset_password.html', token=token)
+
+
 # ==================== DASHBOARD ====================
 
 @app.route('/dashboard')
@@ -164,6 +388,10 @@ def dashboard():
     """User's personalized dashboard - shows their items and requests."""
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    
+    success_message = None
+    if session.pop('login_success', False):
+        success_message = 'You are successfully logged in'
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -197,6 +425,7 @@ def dashboard():
     
     return render_template('dashboard.html', 
                          username=session['username'],
+                         success_message=success_message,
                          my_items=my_items,
                          requests_for_me=requests_for_me,
                          my_requests=my_requests)
@@ -213,7 +442,7 @@ def search():
     query = request.args.get('q', '')
     
     if not query:
-        return render_template('search.html', items=[], query='')
+        return render_template('search.html', items=[], query='', message='Enter an item name to search')
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -228,16 +457,39 @@ def search():
         SELECT i.*, u.username as owner, u.location as owner_location
         FROM items i
         JOIN users u ON i.owner_id = u.id
-        WHERE (i.name LIKE ? OR i.keywords LIKE ?) AND i.status = 'available'
+        WHERE i.name LIKE ? AND i.status = 'available'
         ORDER BY 
             CASE WHEN u.location = ? THEN 0
                  WHEN u.location LIKE ? THEN 1
                  ELSE 2 END
-    ''', (f'%{query}%', f'%{query}%', user_location, f'%{user_location}%'))
+    ''', (f'%{query}%', user_location, f'%{user_location}%'))
     
     items = cursor.fetchall()
-    conn.close()
     
+    if not items:
+        # Item doesn't exist, show message to user about requesting it
+        cursor.execute('''
+            SELECT * FROM items WHERE name LIKE ? AND status = 'requested'
+        ''', (f'%{query}%',))
+        
+        requested_items = cursor.fetchall()
+        if requested_items:
+            conn.close()
+            return render_template('search.html', 
+                                 items=[], 
+                                 query=query,
+                                 message='The requested item is currently unavailable. See pending requests:',
+                                 requested_items=requested_items,
+                                 show_request_form=True)
+        else:
+            conn.close()
+            return render_template('search.html', 
+                                 items=[], 
+                                 query=query,
+                                 message='The requested item is currently unavailable.',
+                                 show_request_form=True)
+    
+    conn.close()
     return render_template('search.html', items=items, query=query)
 
 
@@ -247,25 +499,48 @@ def request_item():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
+    categories_list = [
+        'Tools', 'Kitchen', 'Electronics', 'Study & Office', 'Sports & Outdoor',
+        'Events & Parties', 'Creative & Hobby', 'Gaming', 'Home & Living',
+        'Mobility', 'Baby & Child', 'Pets'
+    ]
+    
     if request.method == 'POST':
         item_name = request.form.get('item_name')
-        keywords = request.form.get('keywords')
+        category = request.form.get('category')
+        description = request.form.get('description', '')
         
-        # Store the request in a special table or display on dashboard
+        if not item_name or not category:
+            return render_template('request_item.html', 
+                                 error='Item name and category are required',
+                                 categories=categories_list)
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Create a placeholder item that shows as "requested"
+        # Create a "requested" item
         cursor.execute('''
-            INSERT INTO items (name, description, owner_id, status, keywords)
-            VALUES (?, 'REQUESTED ITEM', ?, 'requested', ?)
-        ''', (item_name, session['user_id'], keywords))
+            INSERT INTO items (name, description, owner_id, category, status)
+            VALUES (?, ?, ?, ?, 'requested')
+        ''', (item_name, description, session['user_id'], category))
+        
+        # Send notifications to users interested in this category
+        cursor.execute('''
+            SELECT id FROM users 
+            WHERE id != ? AND categories LIKE ?
+        ''', (session['user_id'], f'%{category}%'))
+        
+        interested_users = cursor.fetchall()
+        
+        # TODO: Create notification system
+        # For now, just log that these users should be notified
+        
         conn.commit()
         conn.close()
         
         return redirect(url_for('dashboard'))
     
-    return render_template('request_item.html')
+    return render_template('request_item.html', categories=categories_list)
 
 
 # ==================== BORROWING PROCESS ====================
@@ -450,52 +725,82 @@ def add_item():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
+    categories_list = [
+        'Tools', 'Kitchen', 'Electronics', 'Study & Office', 'Sports & Outdoor',
+        'Events & Parties', 'Creative & Hobby', 'Gaming', 'Home & Living',
+        'Mobility', 'Baby & Child', 'Pets'
+    ]
+    
+    suggested_category = None
     if request.method == 'POST':
         name = request.form.get('name')
+        category = request.form.get('category')
         description = request.form.get('description')
-        keywords = request.form.get('keywords', '')
+        photo = request.form.get('photo')  # TODO: Handle file upload
+        
+        if not name or not category:
+            return render_template('add_item.html', 
+                                 error='Item name and category are required',
+                                 categories=categories_list)
         
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        # Check if item with same name already exists
+        cursor.execute('SELECT category FROM items WHERE name = ?', (name,))
+        existing = cursor.fetchone()
+        
+        if existing and not request.form.get('confirmed'):
+            # Item exists, suggest the category
+            suggested_category = existing['category']
+            conn.close()
+            return render_template('add_item.html', 
+                                 name=name,
+                                 suggested_category=suggested_category,
+                                 categories=categories_list,
+                                 message=f'This item already exists in our database. We suggest category: {suggested_category}')
+        
+        # Add the item
         cursor.execute('''
-            INSERT INTO items (name, description, owner_id, status, keywords)
-            VALUES (?, ?, ?, 'available', ?)
-        ''', (name, description, session['user_id'], keywords))
+            INSERT INTO items (name, description, owner_id, category, status, photo)
+            VALUES (?, ?, ?, ?, 'available', ?)
+        ''', (name, description, session['user_id'], category, photo))
         conn.commit()
         conn.close()
         
         return redirect(url_for('dashboard'))
     
-    return render_template('add_item.html')
+    return render_template('add_item.html', categories=categories_list)
 
 
 # ==================== NOTIFICATIONS ====================
 
 @app.route('/notifications')
 def notifications():
-    """Show notifications for keyword matches."""
+    """Show notifications for category matches."""
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Get user's keywords
-    cursor.execute('SELECT keywords FROM users WHERE id = ?', (session['user_id'],))
+    # Get user's categories of interest
+    cursor.execute('SELECT categories FROM users WHERE id = ?', (session['user_id'],))
     user = cursor.fetchone()
-    user_keywords = user['keywords'].split(',') if user and user['keywords'] else []
+    user_categories = user['categories'].split(',') if user and user['categories'] else []
+    user_categories = [cat.strip() for cat in user_categories]
     
-    # Find items matching user's keywords
+    # Find items matching user's categories (that were recently posted/requested)
     matching_items = []
-    for keyword in user_keywords:
-        keyword = keyword.strip()
-        if keyword:
+    for category in user_categories:
+        if category:
             cursor.execute('''
                 SELECT i.*, u.username as owner
                 FROM items i
                 JOIN users u ON i.owner_id = u.id
-                WHERE i.keywords LIKE ? AND i.owner_id != ?
-            ''', (f'%{keyword}%', session['user_id']))
+                WHERE i.category = ? AND i.owner_id != ? AND i.status IN ('available', 'requested')
+                ORDER BY i.id DESC
+            ''', (category, session['user_id']))
             items = cursor.fetchall()
             matching_items.extend(items)
     
