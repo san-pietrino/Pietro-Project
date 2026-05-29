@@ -22,38 +22,122 @@ def get_db_connection():
     return conn
 
 
+def schema_exists():
+    """Check if the new schema exists (has email column in users table)."""
+    try:
+        conn = sqlite3.connect(DATABASE)
+        cursor = conn.cursor()
+        cursor.execute('PRAGMA table_info(users)')
+        columns = [row[1] for row in cursor.fetchall()]
+        conn.close()
+        return 'email' in columns
+    except:
+        return False
+
+
+def migrate_database():
+    """Migrate old database schema to new one."""
+    try:
+        conn = sqlite3.connect(DATABASE)
+        cursor = conn.cursor()
+        
+        # Check if users table exists
+        cursor.execute('''SELECT name FROM sqlite_master WHERE type='table' AND name='users' ''')
+        if not cursor.fetchone():
+            conn.close()
+            return  # No old database
+        
+        # Rename old table
+        cursor.execute('ALTER TABLE users RENAME TO users_old')
+        
+        # Create new users table with correct schema
+        cursor.execute('''
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE,
+                password TEXT NOT NULL,
+                location TEXT,
+                categories TEXT
+            )
+        ''')
+        
+        # Migrate data from old table
+        cursor.execute('''
+            INSERT INTO users (id, username, password, location, categories)
+            SELECT id, username, password, location, keywords FROM users_old
+        ''')
+        
+        # Drop old table
+        cursor.execute('DROP TABLE users_old')
+        
+        # Do the same for items table if needed
+        cursor.execute('''SELECT name FROM sqlite_master WHERE type='table' AND name='items' ''')
+        if cursor.fetchone():
+            cursor.execute('PRAGMA table_info(items)')
+            columns = [row[1] for row in cursor.fetchall()]
+            
+            if 'category' not in columns:
+                cursor.execute('ALTER TABLE items RENAME TO items_old')
+                cursor.execute('''
+                    CREATE TABLE items (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL,
+                        description TEXT,
+                        owner_id INTEGER NOT NULL,
+                        category TEXT,
+                        status TEXT DEFAULT 'available',
+                        photo TEXT,
+                        FOREIGN KEY (owner_id) REFERENCES users (id)
+                    )
+                ''')
+                cursor.execute('''
+                    INSERT INTO items (id, name, description, owner_id, status, photo)
+                    SELECT id, name, description, owner_id, status, NULL FROM items_old
+                ''')
+                cursor.execute('DROP TABLE items_old')
+        
+        conn.commit()
+        conn.close()
+        print("Database migration completed successfully")
+    except Exception as e:
+        print(f"Migration error: {e}")
+
+
 def init_db():
-    """Initialize the database with required tables."""
+    """Initialize the database with required tables and migrate schema."""
+    # Check if migration is needed
+    if not schema_exists():
+        migrate_database()
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Users table
+    # Create tables if they don't exist
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
-            email TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE,
             password TEXT NOT NULL,
             location TEXT,
             categories TEXT
         )
     ''')
     
-    # Items table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             description TEXT,
             owner_id INTEGER NOT NULL,
-            category TEXT NOT NULL,
+            category TEXT,
             status TEXT DEFAULT 'available',
             photo TEXT,
             FOREIGN KEY (owner_id) REFERENCES users (id)
         )
     ''')
     
-    # Requests table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS requests (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,7 +150,6 @@ def init_db():
         )
     ''')
     
-    # Messages table for chat
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -79,7 +162,6 @@ def init_db():
         )
     ''')
     
-    # Password reset tokens table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS password_reset_tokens (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -184,8 +266,16 @@ def login():
         
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT id, username, password, email FROM users WHERE username = ? OR email = ?', (username, username))
-        user = cursor.fetchone()
+        
+        # Try to get user - handle both old and new schema
+        try:
+            cursor.execute('SELECT id, username, password, email FROM users WHERE username = ? OR email = ?', (username, username))
+            user = cursor.fetchone()
+        except sqlite3.OperationalError:
+            # Fallback for old schema without email column
+            cursor.execute('SELECT id, username, password FROM users WHERE username = ?', (username,))
+            user = cursor.fetchone()
+        
         conn.close()
         
         if not user:
