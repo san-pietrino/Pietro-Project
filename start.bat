@@ -29,10 +29,10 @@ echo.
 echo ✅ Pietro is running!
 echo.
 echo 📍 Open your browser and go to:
-echo    http://127.0.0.1:5000
+echo    http://127.0.0.1:8001
 echo.
 echo Press Ctrl+C in the Flask window to stop the server
 echo.
 
 REM Open browser
-start http://127.0.0.1:5000
+start http://127.0.0.1:8001
