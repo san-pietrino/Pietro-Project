@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - Pietro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="chat-header">
+            <h1>CHAT</h1>
+            <a href="{{ url_for('profile') }}" class="chat-avatar icon icon-user" aria-label="Profile"></a>
+        </header>
+
+        <main>
+            <section class="chat-list-section">
+                {% if chats %}
+                <div class="chat-list">
+                    {% for chat in chats %}
+                    <a href="{{ url_for('chat', request_id=chat.id) }}" class="chat-card">
+                        <div class="chat-card-left">
+                            <div class="avatar icon icon-request"></div>
+                            <div class="chat-card-text">
+                                <div class="chat-name">{{ chat.other_name }}</div>
+                                <p class="chat-snippet">{{ chat.last_message or 'No messages yet' }}</p>
+                            </div>
+                        </div>
+                        <div class="chat-card-time">{{ chat.last_message_at or chat.created_at }}</div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="empty-state">No messages yet</p>
+                {% endif %}
+            </section>
+        </main>
+
+        {% include 'footer_nav.html' %}
+    </div>
+</body>
+</html>

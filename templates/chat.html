@@ -8,20 +8,29 @@
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>🔧 Pietro</h1>
-            <nav>
-                <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                <a href="{{ url_for('logout') }}">Logout</a>
-            </nav>
+        <header class="chat-header">
+            <a href="{{ url_for('chat_index') }}" class="chat-back">&lt;</a>
+            <h1>CHAT</h1>
+            <a href="{{ url_for('profile') }}" class="chat-avatar icon icon-user" aria-label="Profile"></a>
         </header>
         
         <main>
-            <section class="chat-section">
-                <h2><span class="icon icon-chat" aria-hidden="true"></span> Chat</h2>
-                <p class="chat-info">Item: {{ request.item_name }} | Borrower: {{ request.borrower_name }}</p>
-                
-                <div class="chat-messages">
+            <section class="chat-card-summary">
+                <div class="chat-summary-left">
+                    <div class="chat-summary-avatar icon icon-request"></div>
+                    <div>
+                        <div class="chat-summary-name">{{ chat_partner }}</div>
+                        <p class="chat-summary-text">Looking for a {{ chat_request.item_name }}.</p>
+                    </div>
+                </div>
+                {% if chat_request.item_photo %}
+                <div class="chat-summary-image-wrap">
+                    <img src="{{ url_for('static', filename='uploads/' + chat_request.item_photo) }}" alt="{{ chat_request.item_name }}">
+                </div>
+                {% endif %}
+            </section>
+
+            <div class="chat-messages">
                     {% if messages %}
                         {% for msg in messages %}
                         <div class="message {% if msg.sender_id == session['user_id'] %}own{% else %}other{% endif %}">
@@ -36,16 +45,12 @@
                 </div>
                 
                 <form method="POST" action="{{ url_for('send_message', request_id=request_id) }}" class="chat-form">
-                    <input type="text" name="message" placeholder="Type your message..." required>
+                    <input type="text" name="message" placeholder="Write a message :)" required>
                     <button type="submit" class="btn-primary">Send</button>
                 </form>
             </section>
         </main>
         {% include 'footer_nav.html' %}
-        
-        <footer>
-            <p>Made with ❤️ for community sharing</p>
-        </footer>
     </div>
 </body>
 </html>

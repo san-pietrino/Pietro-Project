@@ -1,6 +1,66 @@
 <nav class="bottom-nav">
     <a href="{{ url_for('dashboard') }}" class="nav-item{% if request.path == '/' or request.path.startswith('/dashboard') %} active{% endif %}">HOME</a>
-    <a href="{{ url_for('add_item') }}" class="nav-item{% if request.path.startswith('/add-item') or request.path.startswith('/request-item') %} active{% endif %}">ADD</a>
-    <a href="{{ url_for('notifications') }}" class="nav-item{% if request.path.startswith('/chat') or request.path.startswith('/notifications') %} active{% endif %}">CHAT</a>
-    <a href="{{ url_for('search') }}" class="nav-item{% if request.path.startswith('/search') or request.path.startswith('/item') %} active{% endif %}">BROWSE</a>
+    <a href="{{ url_for('add_item') }}" onclick="return openFooterAddItemModal(event)" class="nav-item center-action{% if request.path.startswith('/add-item') or request.path.startswith('/request-item') %} active{% endif %}" aria-label="Add item">
+        <svg class="plus-icon" viewBox="0 0 24 24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+    </a>
+    <a href="{{ url_for('chat_index') }}" class="nav-item{% if request.path.startswith('/chat') %} active{% endif %}">CHAT</a>
 </nav>
+
+<div class="footer-add-item-modal" id="footerAddItemModal">
+    <div class="footer-modal-content">
+        <div class="footer-modal-header">
+            <h2>ADD AN ITEM</h2>
+            <button type="button" class="footer-modal-close" onclick="closeFooterAddItemModal()" aria-label="Close popup">&times;</button>
+        </div>
+        <p class="footer-modal-subtitle">Do you have any object to share?</p>
+        <form method="POST" action="{{ url_for('add_item') }}" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="footer-item-name">Item Name *</label>
+                <input type="text" id="footer-item-name" name="name" required placeholder="e.g., Sewing Machine">
+            </div>
+            <div class="form-group">
+                <label>Category *</label>
+                <div class="footer-categories-grid">
+                    {% set categories_list = ['Tools', 'Kitchen', 'Electronics', 'Study & Office', 'Sports & Outdoor', 'Events & Parties', 'Creative & Hobby', 'Gaming', 'Home & Living', 'Mobility', 'Baby & Child', 'Pets'] %}
+                    {% for category in categories_list %}
+                    <label class="footer-category-chip">
+                        <input type="radio" name="category" value="{{ category }}" required>
+                        <span>{{ category }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="footer-description">Description</label>
+                <textarea id="footer-description" name="description" rows="3" placeholder="Describe your item..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="footer-photo">Photo (optional)</label>
+                <input type="file" id="footer-photo" name="photo" accept="image/*">
+            </div>
+            <button type="submit" class="btn-submit">Add Item</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openFooterAddItemModal(event) {
+        if (event) {
+            event.preventDefault();
+        }
+        document.getElementById('footerAddItemModal').classList.add('show');
+        return false;
+    }
+    function closeFooterAddItemModal() {
+        document.getElementById('footerAddItemModal').classList.remove('show');
+    }
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('footerAddItemModal');
+        if (modal && event.target === modal) {
+            modal.classList.remove('show');
+        }
+    });
+</script>

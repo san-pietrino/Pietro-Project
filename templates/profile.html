@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Pietro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container profile-page">
+        <header class="profile-header">
+            <h1>MY PROFILE</h1>
+        </header>
+
+        <section class="profile-user-row">
+            <div class="profile-avatar icon icon-user"></div>
+            <div class="profile-user-info">
+                <div class="profile-user-name-row">
+                    <span class="profile-user-name">{{ user.username }}</span>
+                    <button class="profile-edit-button" type="button" aria-label="Edit profile">✎</button>
+                </div>
+                <p class="profile-location">{{ user.location or 'Unknown' }}</p>
+            </div>
+        </section>
+
+        <section class="profile-content">
+            <div class="profile-tabs">
+                <button class="tab active" data-tab="my-items">My items</button>
+                <button class="tab" data-tab="borrowed-items">Borrowed Items</button>
+            </div>
+
+            <div class="tab-panels">
+                <div class="tab-panel active" id="my-items">
+                    <div class="items-grid">
+                        {% if my_items %}
+                            {% for item in my_items %}
+                            <div class="item-card">
+                                <div class="item-image">
+                                    <div class="item-image-placeholder" {% if item.photo %}style="display:none;"{% endif %}></div>
+                                    {% if item.photo %}
+                                        <img src="{{ url_for('static', filename='uploads/' + item.photo) }}" alt="{{ item.name }}"
+                                             onerror="this.style.display='none'; this.parentNode.querySelector('.item-image-placeholder').style.display='block';">
+                                    {% endif %}
+                                </div>
+                                <div class="item-name">{{ item.name }}</div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="empty-state">No items yet</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="tab-panel" id="borrowed-items">
+                    <div class="items-grid">
+                        {% if borrowed_items %}
+                            {% for item in borrowed_items %}
+                            <div class="item-card borrowed">
+                                <div class="item-image">
+                                    <div class="item-image-placeholder" {% if item.photo %}style="display:none;"{% endif %}></div>
+                                    {% if item.photo %}
+                                        <img src="{{ url_for('static', filename='uploads/' + item.photo) }}" alt="{{ item.name }}"
+                                             onerror="this.style.display='none'; this.parentNode.querySelector('.item-image-placeholder').style.display='block';">
+                                    {% endif %}
+                                </div>
+                                <div class="item-name">{{ item.name }}</div>
+                                <div class="item-owner">{{ item.owner_name }}</div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="empty-state">No borrowed items yet</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {% include 'footer_nav.html' %}
+    </div>
+
+    <script>
+        document.querySelectorAll('.profile-tabs .tab').forEach(function(button) {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.profile-tabs .tab').forEach(function(tab) {
+                    tab.classList.toggle('active', tab === button);
+                });
+                var target = button.getAttribute('data-tab');
+                document.querySelectorAll('.tab-panel').forEach(function(panel) {
+                    panel.classList.toggle('active', panel.id === target);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

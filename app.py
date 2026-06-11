@@ -401,10 +401,6 @@ def dashboard():
     cursor.execute('SELECT * FROM items WHERE owner_id = ?', (session['user_id'],))
     my_items = cursor.fetchall()
     
-    # Get requests created by the user for unavailable items
-    cursor.execute('SELECT * FROM items WHERE owner_id = ? AND status = ?', (session['user_id'], 'requested'))
-    my_requested_items = cursor.fetchall()
-
     # Get requests for my items
     cursor.execute('''
         SELECT r.id, r.status, r.created_at, i.name as item_name, u.username as borrower
@@ -415,6 +411,39 @@ def dashboard():
         ORDER BY r.created_at DESC
     ''', (session['user_id'],))
     requests_for_me = cursor.fetchall()
+
+    # Get requested items matching the user's categories
+    cursor.execute('SELECT categories FROM users WHERE id = ?', (session['user_id'],))
+    user_categories_row = cursor.fetchone()
+    user_categories = []
+    if user_categories_row and user_categories_row['categories']:
+        user_categories = [cat.strip() for cat in user_categories_row['categories'].split(',') if cat.strip()]
+
+    matching_requested_items = []
+    seen_request_ids = set()
+    if user_categories:
+        for category in user_categories:
+            cursor.execute('''
+                SELECT i.id, i.name, i.description, u.username as owner
+                FROM items i
+                JOIN users u ON i.owner_id = u.id
+                WHERE i.category = ? AND i.owner_id != ? AND i.status = 'requested'
+                ORDER BY i.id DESC
+            ''', (category, session['user_id']))
+            for item in cursor.fetchall():
+                if item['id'] not in seen_request_ids:
+                    matching_requested_items.append(item)
+                    seen_request_ids.add(item['id'])
+
+    if not matching_requested_items:
+        cursor.execute('''
+            SELECT i.id, i.name, i.description, u.username as owner
+            FROM items i
+            JOIN users u ON i.owner_id = u.id
+            WHERE i.owner_id != ? AND i.status = 'requested'
+            ORDER BY i.id DESC
+        ''', (session['user_id'],))
+        matching_requested_items = cursor.fetchall()
     
     # Get my borrowing requests
     cursor.execute('''
@@ -432,9 +461,77 @@ def dashboard():
                          username=session['username'],
                          success_message=success_message,
                          my_items=my_items,
-                         my_requested_items=my_requested_items,
                          requests_for_me=requests_for_me,
+                         matching_requested_items=matching_requested_items,
                          my_requests=my_requests)
+
+
+@app.route('/start-chat/<int:item_id>')
+def start_chat_with_item(item_id):
+    """Create or reuse a chat request for a requested item and redirect to the chat."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Make sure the item exists and is a requested item.
+    cursor.execute('SELECT id, owner_id, status FROM items WHERE id = ?', (item_id,))
+    item = cursor.fetchone()
+    if not item or item['status'] != 'requested':
+        conn.close()
+        return redirect(url_for('dashboard'))
+
+    # If a chat request already exists for this user and item, reuse it.
+    cursor.execute('''
+        SELECT id FROM requests
+        WHERE item_id = ? AND borrower_id = ?
+    ''', (item_id, session['user_id']))
+    existing = cursor.fetchone()
+    if existing:
+        request_id = existing['id']
+        conn.close()
+        return redirect(url_for('chat', request_id=request_id))
+
+    cursor.execute('''
+        INSERT INTO requests (item_id, borrower_id, status)
+        VALUES (?, ?, 'pending')
+    ''', (item_id, session['user_id']))
+    request_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for('chat', request_id=request_id))
+
+
+@app.route('/profile')
+def profile():
+    """Show the user's profile page with owned and borrowed items."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT username, location FROM users WHERE id = ?', (session['user_id'],))
+    user = cursor.fetchone()
+
+    cursor.execute('SELECT id, name, photo, category, status FROM items WHERE owner_id = ?', (session['user_id'],))
+    my_items = cursor.fetchall()
+
+    cursor.execute('''
+        SELECT i.id, i.name, i.photo, i.category, u.username as owner_name, r.status
+        FROM requests r
+        JOIN items i ON r.item_id = i.id
+        JOIN users u ON i.owner_id = u.id
+        WHERE r.borrower_id = ?
+        ORDER BY r.created_at DESC
+    ''', (session['user_id'],))
+    borrowed_items = cursor.fetchall()
+
+    conn.close()
+
+    return render_template('profile.html', user=user, my_items=my_items, borrowed_items=borrowed_items)
 
 
 # ==================== ITEM SEARCH ====================
@@ -642,6 +739,37 @@ def respond_request(request_id):
 
 # ==================== CHAT ====================
 
+@app.route('/chat')
+def chat_index():
+    """List the user's chat conversations."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT r.id, r.created_at, i.name as item_name,
+               (CASE WHEN i.owner_id = ? THEN u2.username ELSE u1.username END) as other_name,
+               (SELECT content FROM messages m WHERE m.request_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message,
+               (SELECT created_at FROM messages m WHERE m.request_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message_at
+        FROM requests r
+        JOIN items i ON r.item_id = i.id
+        JOIN users u1 ON i.owner_id = u1.id
+        JOIN users u2 ON r.borrower_id = u2.id
+        WHERE i.owner_id = ? OR r.borrower_id = ?
+        ORDER BY COALESCE(
+            (SELECT created_at FROM messages m WHERE m.request_id = r.id ORDER BY m.created_at DESC LIMIT 1),
+            r.created_at
+        ) DESC
+    ''', (session['user_id'], session['user_id'], session['user_id']))
+    chats = cursor.fetchall()
+
+    conn.close()
+
+    return render_template('chat_list.html', chats=chats)
+
+
 @app.route('/chat/<int:request_id>')
 def chat(request_id):
     """Chat between borrower and owner for an accepted request."""
@@ -653,21 +781,25 @@ def chat(request_id):
     
     # Get request details
     cursor.execute('''
-        SELECT r.*, i.name as item_name, i.owner_id,
+        SELECT r.*, i.name as item_name, i.photo as item_photo, i.owner_id,
+               (SELECT username FROM users WHERE id = i.owner_id) as requester_name,
                (SELECT username FROM users WHERE id = r.borrower_id) as borrower_name
         FROM requests r
         JOIN items i ON r.item_id = i.id
         WHERE r.id = ?
     ''', (request_id,))
     request_data = cursor.fetchone()
-    
+
     # Verify access
     if not request_data or (request_data['owner_id'] != session['user_id'] and 
                            request_data['borrower_id'] != session['user_id']):
         conn.close()
         return "Unauthorized", 403
-    
-    # Get messages
+
+    if request_data['owner_id'] == session['user_id']:
+        chat_partner = request_data['borrower_name']
+    else:
+        chat_partner = request_data['requester_name']
     cursor.execute('''
         SELECT m.*, u.username as sender_name
         FROM messages m
@@ -680,7 +812,8 @@ def chat(request_id):
     conn.close()
     
     return render_template('chat.html', 
-                         request=request_data,
+                         chat_request=request_data,
+                         chat_partner=chat_partner,
                          messages=messages,
                          request_id=request_id)
 
