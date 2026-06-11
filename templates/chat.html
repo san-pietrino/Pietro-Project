@@ -18,7 +18,7 @@
         
         <main>
             <section class="chat-section">
-                <h2>💬 Chat</h2>
+                <h2><span class="icon icon-chat" aria-hidden="true"></span> Chat</h2>
                 <p class="chat-info">Item: {{ request.item_name }} | Borrower: {{ request.borrower_name }}</p>
                 
                 <div class="chat-messages">
@@ -41,6 +41,7 @@
                 </form>
             </section>
         </main>
+        {% include 'footer_nav.html' %}
         
         <footer>
             <p>Made with ❤️ for community sharing</p>

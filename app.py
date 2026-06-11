@@ -5,8 +5,10 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from datetime import datetime
 import math
+import os
 
 app = Flask(__name__)
 app.secret_key = 'pietro-secret-key-change-in-production'  # → see DECISIONS.md #2
@@ -181,10 +183,9 @@ def init_db():
 
 @app.route('/')
 def index():
-    """Home page - redirects to login or dashboard based on session."""
-    if 'user_id' in session:
-        return redirect(url_for('dashboard'))
-    return render_template('index.html')
+    """Home page - shows the landing page with entry options."""
+    logged_in = 'user_id' in session
+    return render_template('index.html', logged_in=logged_in)
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -400,6 +401,10 @@ def dashboard():
     cursor.execute('SELECT * FROM items WHERE owner_id = ?', (session['user_id'],))
     my_items = cursor.fetchall()
     
+    # Get requests created by the user for unavailable items
+    cursor.execute('SELECT * FROM items WHERE owner_id = ? AND status = ?', (session['user_id'], 'requested'))
+    my_requested_items = cursor.fetchall()
+
     # Get requests for my items
     cursor.execute('''
         SELECT r.id, r.status, r.created_at, i.name as item_name, u.username as borrower
@@ -427,6 +432,7 @@ def dashboard():
                          username=session['username'],
                          success_message=success_message,
                          my_items=my_items,
+                         my_requested_items=my_requested_items,
                          requests_for_me=requests_for_me,
                          my_requests=my_requests)
 
@@ -736,7 +742,20 @@ def add_item():
         name = request.form.get('name')
         category = request.form.get('category')
         description = request.form.get('description')
-        photo = request.form.get('photo')  # TODO: Handle file upload
+        photo_file = request.files.get('photo')
+        
+        # Handle photo upload
+        photo = None
+        if photo_file and photo_file.filename:
+            from datetime import datetime as dt
+            timestamp = dt.now().strftime('%Y%m%d%H%M%S')
+            filename = f"{timestamp}_{secure_filename(photo_file.filename)}"
+            uploads_dir = os.path.join(app.static_folder, 'uploads')
+            if not os.path.exists(uploads_dir):
+                os.makedirs(uploads_dir)
+            photo_path = os.path.join(uploads_dir, filename)
+            photo_file.save(photo_path)
+            photo = filename
         
         if not name or not category:
             return render_template('add_item.html', 
@@ -770,7 +789,14 @@ def add_item():
         
         return redirect(url_for('dashboard'))
     
-    return render_template('add_item.html', categories=categories_list)
+    # GET request - fetch user's items
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, name, photo, category FROM items WHERE owner_id = ? AND status = "available"', (session['user_id'],))
+    user_items = cursor.fetchall()
+    conn.close()
+    
+    return render_template('add_item.html', categories=categories_list, user_items=user_items)
 
 
 # ==================== NOTIFICATIONS ====================

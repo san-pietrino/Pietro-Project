@@ -43,7 +43,7 @@
             font-size: 0.9em;
         }
         .forgot-password-link a {
-            color: #1976d2;
+            color: #ffffff;
             text-decoration: none;
         }
         .forgot-password-link a:hover {
@@ -52,48 +52,37 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🔧 Pietro</h1>
-            <p class="tagline">Borrow from your neighbors, lend to your friends</p>
-        </header>
-        
-        <main>
-            <div class="login-form">
-                <h2>Welcome back!</h2>
-                
-                {% if error %}
-                <div class="error">{{ error }}</div>
-                {% endif %}
-                
-                {% if success_message %}
-                <div class="success">{{ success_message }}</div>
-                {% endif %}
-                
-                <form method="POST" action="{{ url_for('login') }}">
-                    <div class="form-group">
-                        <label for="username">Username or Email</label>
-                        <input type="text" id="username" name="username" required placeholder="Enter your username or email">
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="password" name="password" required placeholder="Enter your password">
-                            <button type="button" class="toggle-btn" onclick="togglePasswordVisibility()">👁️</button>
-                        </div>
-                    </div>
-                    <div class="forgot-password-link">
-                        <a href="{{ url_for('forgot_password') }}">Forgot your <span style="text-decoration: underline; cursor: pointer;">password</span>?</a>
-                    </div>
-                    <button type="submit" class="btn-primary">Login</button>
-                </form>
-                <p class="register-link">New to Pietro? <a href="{{ url_for('register') }}">Create an account</a></p>
+    <div class="login-page">
+        <div class="login-card">
+            <div class="login-top">
+                <h1>LOGIN</h1>
+                <div class="login-avatar icon icon-user"></div>
             </div>
-        </main>
-        
-        <footer>
-            <p>Made with ❤️ for community sharing</p>
-        </footer>
+            {% if error %}
+            <div class="error">{{ error }}</div>
+            {% endif %}
+            {% if success_message %}
+            <div class="success">{{ success_message }}</div>
+            {% endif %}
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="form-group">
+                    <label for="username">What’s your username?</label>
+                    <input type="text" id="username" name="username" required placeholder="Pietro Indietro">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" name="password" required placeholder="...">
+                        <button type="button" class="toggle-btn" onclick="togglePasswordVisibility()">👁️</button>
+                    </div>
+                </div>
+                <div class="forgot-password-link">
+                    <a href="{{ url_for('forgot_password') }}">Forgot your password?</a>
+                </div>
+                <button type="submit" class="btn-primary">Login</button>
+            </form>
+            <p class="register-link">New to Pietro? <a href="{{ url_for('register') }}">Create an account</a></p>
+        </div>
     </div>
     
     <script>

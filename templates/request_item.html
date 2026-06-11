@@ -55,7 +55,7 @@
         
         <main>
             <section class="request-form-section">
-                <h2>📝 Request an Item</h2>
+                <h2><span class="icon icon-request" aria-hidden="true"></span> Request an Item</h2>
                 <p class="form-description">Couldn't find what you're looking for? Let us know!</p>
                 
                 {% if error %}
@@ -90,6 +90,7 @@
                 </form>
             </section>
         </main>
+        {% include 'footer_nav.html' %}
         
         <footer>
             <p>Made with ❤️ for community sharing</p>

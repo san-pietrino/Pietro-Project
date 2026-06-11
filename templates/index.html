@@ -2,10 +2,30 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0;url={{ url_for('login') }}">
-    <title>Pietro - Redirecting...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pietro - Welcome</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <p>Redirecting to <a href="{{ url_for('login') }}">login page</a>...</p>
+    <div class="landing-page">
+        <div class="landing-card">
+            <h1>CIAO!</h1>
+            <p>This app is called Pietro!</p>
+            <div class="hero-buttons">
+                {% if logged_in %}
+                <a class="btn-primary" href="{{ url_for('dashboard') }}">Go to Dashboard</a>
+                <a class="btn-secondary" href="{{ url_for('logout') }}">Logout</a>
+                {% else %}
+                <a class="btn-primary" href="{{ url_for('login') }}">Login</a>
+                <a class="btn-secondary" href="{{ url_for('register') }}">Register</a>
+                {% endif %}
+            </div>
+            <div class="landing-info">
+                <p>* In Italy, when you borrow something from a friend, they’ll smirk and say: "Si chiama Pietro... e torna indietro!" ("Its name is Pietro... and it comes back!").
+                    It’s a playful, rhyming way of saying: "You can totally use my stuff... but I definitely want it back!" 
+                    It turns an awkward reminder into a fun little joke.</p>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

@@ -17,93 +17,63 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🔧 Pietro</h1>
-            <p class="tagline">Welcome, {{ username }}!</p>
-            <nav>
-                <a href="{{ url_for('search') }}">Search Items</a>
-                <a href="{{ url_for('add_item') }}">Add Item</a>
-                <a href="{{ url_for('notifications') }}">Notifications</a>
-                <a href="{{ url_for('logout') }}">Logout</a>
-            </nav>
+    <div class="container dashboard-mobile">
+        <header class="dashboard-header">
+            <h1 class="welcome">WELCOME, {{ username|upper }}!</h1>
+            <div class="avatar icon icon-user"></div>
+            <form class="search-form-mobile" action="{{ url_for('search') }}" method="GET">
+                <input type="text" name="q" placeholder="what are you looking for?" aria-label="search">
+                <button type="submit" class="search-btn"><span class="icon icon-search" aria-hidden="true"></span><span class="sr-only">Search</span></button>
+            </form>
         </header>
-        
+
         <main>
-            {% if success_message %}
-            <div class="success-message">{{ success_message }}</div>
-            {% endif %}
-            
-            <section class="dashboard-section">
-                <h2>📦 My Items to Lend</h2>
-                {% if my_items %}
-                <div class="item-list">
-                    {% for item in my_items %}
-                    <div class="item-card">
-                        <h3>{{ item.name }}</h3>
-                        <p><strong>Category:</strong> {{ item.category }}</p>
-                        {% if item.description %}
-                        <p>{{ item.description }}</p>
-                        {% endif %}
-                        <span class="status-badge {{ item.status }}">{{ item.status }}</span>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <p class="empty-state">You haven't added any items yet. <a href="{{ url_for('add_item') }}">Add your first item!</a></p>
-                {% endif %}
-            </section>
-            
-            <section class="dashboard-section">
-                <h2>📬 Requests for My Items</h2>
+            <section class="pending-section">
+                <h2 class="section-title">PENDING REQUESTS:</h2>
+
                 {% if requests_for_me %}
-                <div class="request-list">
-                    {% for req in requests_for_me %}
-                    <div class="request-card">
-                        <h3>{{ req.item_name }}</h3>
-                        <p>Requested by: {{ req.borrower }}</p>
-                        <p>Status: <span class="status-badge {{ req.status }}">{{ req.status }}</span></p>
-                        <p>Date: {{ req.created_at }}</p>
-                        {% if req.status == 'pending' %}
-                        <form method="POST" action="{{ url_for('respond_request', request_id=req.id) }}" class="respond-form">
-                            <button type="submit" name="action" value="accept" class="btn-accept">Accept</button>
-                            <button type="submit" name="action" value="decline" class="btn-decline">Decline</button>
-                        </form>
-                        {% elif req.status == 'accepted' %}
-                        <a href="{{ url_for('chat', request_id=req.id) }}" class="btn-chat">Open Chat</a>
-                        {% endif %}
+                    {% set first = requests_for_me[0] %}
+                    <div class="pending-card">
+                        <div class="card-left">
+                            <div class="requester-avatar icon icon-request"></div>
+                            <div class="request-text">
+                                <div class="requester-name">{{ first.borrower }}</div>
+                                <p class="request-desc">Looking for a {{ first.item_name }}.</p>
+                            </div>
+                        </div>
+                        <div class="card-right placeholder-card">
+                            <img src="{{ url_for('static', filename='6-2-screwdriver-download-png.png') }}" alt="Screwdriver placeholder" class="request-image">
+                        </div>
                     </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <p class="empty-state">No requests yet</p>
-                {% endif %}
-            </section>
-            
-            <section class="dashboard-section">
-                <h2>📋 My Borrowing Requests</h2>
-                {% if my_requests %}
-                <div class="request-list">
-                    {% for req in my_requests %}
-                    <div class="request-card">
-                        <h3>{{ req.item_name }}</h3>
-                        <p>Status: <span class="status-badge {{ req.status }}">{{ req.status }}</span></p>
-                        <p>Date: {{ req.created_at }}</p>
-                        {% if req.status == 'accepted' %}
-                        <a href="{{ url_for('chat', request_id=req.id) }}" class="btn-chat">Open Chat</a>
-                        {% endif %}
+
+                    <div class="action-row">
+                        <a href="{{ url_for('respond_request', request_id=first.id) }}" class="big-action-button">I have one!</a>
                     </div>
-                    {% endfor %}
-                </div>
+                {% elif my_requested_items %}
+                    {% set first = my_requested_items[0] %}
+                    <div class="pending-card">
+                        <div class="card-left">
+                            <div class="requester-avatar icon icon-user"></div>
+                            <div class="request-text">
+                                <div class="requester-name">Your request</div>
+                                <p class="request-desc">Looking for a {{ first.name }}.</p>
+                            </div>
+                        </div>
+                        <div class="card-right placeholder-card">
+                            <img src="{{ url_for('static', filename='6-2-screwdriver-download-png.png') }}" alt="Screwdriver placeholder" class="request-image">
+                        </div>
+                    </div>
+
+                    <div class="action-row">
+                        <span class="big-action-button disabled">Waiting for owner match</span>
+                    </div>
                 {% else %}
-                <p class="empty-state">No borrowing requests yet. <a href="{{ url_for('search') }}">Search for items!</a></p>
+                    <p class="empty-state">No pending requests</p>
                 {% endif %}
             </section>
         </main>
-        
-        <footer>
-            <p>Made with ❤️ for community sharing</p>
-        </footer>
+
+        {% include 'footer_nav.html' %}
     </div>
 </body>
 </html>

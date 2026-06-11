@@ -64,7 +64,7 @@
         
         <main>
             <section class="search-section">
-                <h2>🔍 Search for Items</h2>
+                <h2><span class="icon icon-search" aria-hidden="true"></span> Search for Items</h2>
                 <form method="GET" action="{{ url_for('search') }}" class="search-form">
                     <input type="text" name="q" value="{{ query }}" placeholder="What are you looking for? (e.g., screwdriver)">
                     <button type="submit" class="btn-primary">Search</button>
@@ -79,7 +79,7 @@
                     
                     {% if requested_items %}
                     <div class="pending-requests">
-                        <h3>📋 Pending Requests</h3>
+                        <h3><span class="icon icon-list" aria-hidden="true"></span> Pending Requests</h3>
                         <div class="item-list">
                             {% for item in requested_items %}
                             <div class="item-card">
@@ -96,7 +96,7 @@
                     
                     {% if items %}
                     <div class="item-list">
-                        <h3>📦 Available Items</h3>
+                        <h3><span class="icon icon-package" aria-hidden="true"></span> Available Items</h3>
                         {% for item in items %}
                         <div class="item-card">
                             <h3>{{ item.name }}</h3>
@@ -146,6 +146,7 @@
                 {% endif %}
             </section>
         </main>
+        {% include 'footer_nav.html' %}
         
         <footer>
             <p>Made with ❤️ for community sharing</p>

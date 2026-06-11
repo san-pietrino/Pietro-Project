@@ -1,0 +1,6 @@
+<nav class="bottom-nav">
+    <a href="{{ url_for('dashboard') }}" class="nav-item{% if request.path == '/' or request.path.startswith('/dashboard') %} active{% endif %}">HOME</a>
+    <a href="{{ url_for('add_item') }}" class="nav-item{% if request.path.startswith('/add-item') or request.path.startswith('/request-item') %} active{% endif %}">ADD</a>
+    <a href="{{ url_for('notifications') }}" class="nav-item{% if request.path.startswith('/chat') or request.path.startswith('/notifications') %} active{% endif %}">CHAT</a>
+    <a href="{{ url_for('search') }}" class="nav-item{% if request.path.startswith('/search') or request.path.startswith('/item') %} active{% endif %}">BROWSE</a>
+</nav>
