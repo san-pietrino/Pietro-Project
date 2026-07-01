@@ -10,12 +10,20 @@
     font-style: normal;
 }
 
+@font-face {
+    font-family: 'GapSans Bold';
+    src: url('GapSansBold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
 :root {
     --font-primary: 'Apfel Grotezk Mittel', 'Barlow', sans-serif;
     --font-secondary: 'Barlow', sans-serif;
+    --font-heading: 'GapSans Bold', 'Apfel Grotezk Mittel', sans-serif;
     --primary-color: #0026CF;
     --secondary-color: #ff1493;;
-    --background-color: #000000;
+    --background-color: #b8d062;
     --card-background: #ffffff00;
     --text-color: #333333;
     --text-light: #666666;
@@ -32,9 +40,13 @@
     box-sizing: border-box;
 }
 
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+}
+
 body {
     font-family: var(--font-primary);
-    background: url('image 22.png') center/cover fixed no-repeat;
+    background-color: #b8d062;
     color: var(--text-color);
     line-height: 1.6;
     max-width: 420px;
@@ -49,7 +61,7 @@ body {
     align-items: center;
     justify-content: center;
     padding: 40px 20px;
-    background: url('image 22.png') center/cover no-repeat;
+    background-color: #b8d062;
 }
 
 .landing-card {
@@ -101,7 +113,7 @@ body {
     align-items: flex-start;
     justify-content: center;
     padding: 60px 20px 40px;
-    background: url('image 22.png') center/cover no-repeat;
+    background-color: #b8d062;
 }
 
 .login-card {
