@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Livello_1" data-name="Livello 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3000 3000">
+  <defs>
+    <style>
+      .cls-1 {
+        stroke-width: 122.38px;
+      }
+
+      .cls-1, .cls-2 {
+        fill: #e7ff00;
+        opacity: .65;
+        stroke: #dd4076;
+        stroke-miterlimit: 10;
+      }
+
+      .cls-2 {
+        stroke-width: 120.43px;
+      }
+
+      .cls-3 {
+        fill: #e7ef35;
+      }
+    </style>
+  </defs>
+  <rect class="cls-3" width="3000" height="3000"/>
+  <g>
+    <line class="cls-1" x1="984.64" y1="2280.65" x2="984.64" y2="716.2"/>
+    <line class="cls-1" x1="1903.85" y1="1755.31" x2="1378.23" y2="1755.31"/>
+    <line class="cls-1" x1="1850.04" y1="802.15" x2="1324.41" y2="802.15"/>
+    <line class="cls-1" x1="1510.86" y1="1370.77" x2="1148.6" y2="1320.4"/>
+    <line class="cls-1" x1="1219.15" y1="1270.59" x2="1142.45" y2="1637.74"/>
+    <line class="cls-1" x1="1813.62" y1="1263.35" x2="2179.34" y2="1268.43"/>
+    <line class="cls-1" x1="2115.49" y1="1326.6" x2="2146.1" y2="952.78"/>
+    <line class="cls-1" x1="899.82" y1="1245.29" x2="1450.42" y2="754.94"/>
+    <line class="cls-1" x1="2089.42" y1="1260.6" x2="1749.48" y2="754.94"/>
+    <line class="cls-2" x1="2058.22" y1="1399.33" x2="1759.27" y2="1844.01"/>
+    <line class="cls-1" x1="1530.62" y1="1832.27" x2="1190.68" y2="1326.6"/>
+  </g>
+</svg>

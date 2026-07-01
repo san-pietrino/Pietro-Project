@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - Pietro</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename="icon - It's called Pietro.svg") }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
         .error-message {
@@ -89,14 +90,18 @@
                     <label for="password">Password</label>
                     <div class="password-wrapper">
                         <input type="password" id="password" name="password" required placeholder="Choose a password">
-                        <button type="button" class="toggle-btn" onclick="togglePasswordVisibility('password')">👁️</button>
+                        <button type="button" class="toggle-btn" onclick="togglePasswordVisibility('password')" aria-label="Show password">
+                            <span class="icon icon-eye" aria-hidden="true"></span>
+                        </button>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="password_confirm">Confirm Password</label>
                     <div class="password-wrapper">
                         <input type="password" id="password_confirm" name="password_confirm" required placeholder="Confirm your password">
-                        <button type="button" class="toggle-btn" onclick="togglePasswordVisibility('password_confirm')">👁️</button>
+                        <button type="button" class="toggle-btn" onclick="togglePasswordVisibility('password_confirm')" aria-label="Show password">
+                            <span class="icon icon-eye" aria-hidden="true"></span>
+                        </button>
                     </div>
                 </div>
                 <div class="form-group">
@@ -126,13 +131,18 @@
     <script>
         function togglePasswordVisibility(fieldId) {
             const field = document.getElementById(fieldId);
-            const button = event.target;
+            const button = event.target.closest('button');
+            const icon = button.querySelector('.icon');
             if (field.type === 'password') {
                 field.type = 'text';
-                button.textContent = '🙈';
+                icon.classList.remove('icon-eye');
+                icon.classList.add('icon-eye-off');
+                button.setAttribute('aria-label', 'Hide password');
             } else {
                 field.type = 'password';
-                button.textContent = '👁️';
+                icon.classList.remove('icon-eye-off');
+                icon.classList.add('icon-eye');
+                button.setAttribute('aria-label', 'Show password');
             }
         }
 
