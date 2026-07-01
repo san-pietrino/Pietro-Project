@@ -75,27 +75,65 @@
 
     <script>
         (function() {
-            var palette = ['color-green', 'color-blue', 'color-pink', 'color-orange'];
-            var previous = null;
-            document.querySelectorAll('.pending-card').forEach(function(card) {
-                var choices = palette.filter(function(color) { return color !== previous; });
-                var chosen = choices[Math.floor(Math.random() * choices.length)];
-                card.classList.add(chosen);
-                previous = chosen;
-            });
-        })();
-
-        (function() {
             var scroller = document.querySelector('.pending-cards-scroll');
             if (!scroller) return;
-            var cards = Array.prototype.slice.call(scroller.querySelectorAll('.pending-card'));
+
+            var originals = Array.prototype.slice.call(scroller.querySelectorAll('.pending-card'));
+            if (!originals.length) return;
+
+            // Randomize card background colors; never repeat on adjacent cards.
+            var palette = ['color-green', 'color-blue', 'color-pink', 'color-orange'];
+            var previousColor = null;
+            originals.forEach(function(card) {
+                var choices = palette.filter(function(color) { return color !== previousColor; });
+                var chosen = choices[Math.floor(Math.random() * choices.length)];
+                card.classList.add(chosen);
+                previousColor = chosen;
+            });
+
+            var loops = originals.length > 1;
+            var leadingClone, trailingClone;
+            if (loops) {
+                // Buffer clones let the carousel wrap seamlessly: a clone of the
+                // last card sits before the first, and a clone of the first sits
+                // after the last. Scrolling onto a clone silently jumps to the
+                // matching real card so it looks like an infinite loop.
+                leadingClone = originals[originals.length - 1].cloneNode(true);
+                trailingClone = originals[0].cloneNode(true);
+                leadingClone.setAttribute('aria-hidden', 'true');
+                trailingClone.setAttribute('aria-hidden', 'true');
+                scroller.insertBefore(leadingClone, originals[0]);
+                scroller.appendChild(trailingClone);
+            }
+
+            var allCards = Array.prototype.slice.call(scroller.querySelectorAll('.pending-card'));
             var minScale = 0.85;
             var minOpacity = 0.45;
+
+            function centerLeftOf(card) {
+                return card.offsetLeft + card.offsetWidth / 2 - scroller.clientWidth / 2;
+            }
+
+            function nearestCard() {
+                var containerRect = scroller.getBoundingClientRect();
+                var containerCenter = containerRect.left + containerRect.width / 2;
+                var closest = null;
+                var closestDist = Infinity;
+                allCards.forEach(function(card) {
+                    var rect = card.getBoundingClientRect();
+                    var dist = Math.abs(containerCenter - (rect.left + rect.width / 2));
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        closest = card;
+                    }
+                });
+                return closest;
+            }
 
             function updateCardStyles() {
                 var containerRect = scroller.getBoundingClientRect();
                 var containerCenter = containerRect.left + containerRect.width / 2;
-                cards.forEach(function(card) {
+                allCards.forEach(function(card) {
                     var rect = card.getBoundingClientRect();
                     var cardCenter = rect.left + rect.width / 2;
                     var maxDistance = containerRect.width / 2 + rect.width / 2;
@@ -105,7 +143,13 @@
                 });
             }
 
+            if (loops) {
+                scroller.scrollLeft = centerLeftOf(originals[0]);
+            }
+            updateCardStyles();
+
             var ticking = false;
+            var settleTimer = null;
             scroller.addEventListener('scroll', function() {
                 if (!ticking) {
                     window.requestAnimationFrame(function() {
@@ -114,9 +158,22 @@
                     });
                     ticking = true;
                 }
+
+                if (loops) {
+                    clearTimeout(settleTimer);
+                    settleTimer = setTimeout(function() {
+                        var nearest = nearestCard();
+                        if (nearest === trailingClone) {
+                            scroller.scrollLeft = centerLeftOf(originals[0]);
+                            updateCardStyles();
+                        } else if (nearest === leadingClone) {
+                            scroller.scrollLeft = centerLeftOf(originals[originals.length - 1]);
+                            updateCardStyles();
+                        }
+                    }, 120);
+                }
             });
             window.addEventListener('resize', updateCardStyles);
-            updateCardStyles();
         })();
     </script>
 </body>

@@ -1215,7 +1215,7 @@ body.dashboard-page {
     flex: 1;
     padding: 14px 18px;
     border-radius: 30px;
-    border: 2px solid rgba(0,0,0,0.06);
+    /*border: 2px solid rgba(0,0,0,0.06);*/
     font-size: 1rem;
     background: white;
     box-shadow: 0 6px 18px rgba(0,0,0,0.08);
@@ -1362,19 +1362,20 @@ body.dashboard-page {
     font-weight: 800;
     text-transform: none;
     font-size: 0.78rem;
-    border: 2px solid #0026cf;
+    /*border: 2px solid #0026cf;*/
     background: white;
     transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
     white-space: normal;
     word-break: break-word;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
 }
 .bottom-nav .nav-item:hover {
     transform: translateY(-2px);
 }
 .bottom-nav .nav-item.active {
-    background: #0a2555;
+    background: #0026cf;
     color: white;
-    border-color: #0026cf;
+    /*border-color: #0026cf;*/
 }
 .bottom-nav .nav-item.center-action {
     flex: 0 0 auto;
@@ -1387,7 +1388,7 @@ body.dashboard-page {
     align-items: center;
     justify-content: center;
     box-shadow: none;
-    border: 2px solid #0026cf;
+    border: 2px solid #ff1493;
     transform: translateY(0);
     padding: 0;
 }
