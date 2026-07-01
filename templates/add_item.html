@@ -1,3 +1,4 @@
+{% from 'macros.html' import user_avatar %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -194,7 +195,7 @@
     <div class="container dashboard-mobile">
         <header class="dashboard-header">
             <h1 class="welcome">YOUR ITEMS</h1>
-            <a href="{{ url_for('profile') }}" class="avatar icon icon-user" aria-label="Profile"></a>
+            {{ user_avatar('avatar', current_user_photo) }}
         </header>
         
         <main>

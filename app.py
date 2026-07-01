@@ -126,7 +126,11 @@ def init_db():
             categories TEXT
         )
     ''')
-    
+
+    cursor.execute('PRAGMA table_info(users)')
+    if 'photo' not in [row[1] for row in cursor.fetchall()]:
+        cursor.execute('ALTER TABLE users ADD COLUMN photo TEXT')
+
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -177,6 +181,19 @@ def init_db():
     
     conn.commit()
     conn.close()
+
+
+@app.context_processor
+def inject_current_user_photo():
+    """Make the logged-in user's profile photo available to every template."""
+    if 'user_id' not in session:
+        return {'current_user_photo': None}
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT photo FROM users WHERE id = ?', (session['user_id'],))
+    row = cursor.fetchone()
+    conn.close()
+    return {'current_user_photo': row['photo'] if row else None}
 
 
 # ==================== AUTHENTICATION ====================
@@ -520,7 +537,7 @@ def profile():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('SELECT username, email, location, categories FROM users WHERE id = ?', (session['user_id'],))
+    cursor.execute('SELECT username, email, location, categories, photo FROM users WHERE id = ?', (session['user_id'],))
     user = cursor.fetchone()
     user_categories = [c.strip() for c in (user['categories'] or '').split(',') if c.strip()]
 
@@ -553,6 +570,7 @@ def edit_profile():
     email = request.form.get('email')
     location = request.form.get('location')
     categories = request.form.getlist('categories')
+    photo_file = request.files.get('photo')
 
     if not username or not email:
         return redirect(url_for('profile'))
@@ -568,6 +586,15 @@ def edit_profile():
         cursor.execute('SELECT id FROM users WHERE email = ? AND id != ?', (email, session['user_id']))
         if cursor.fetchone():
             return redirect(url_for('profile'))
+
+        if photo_file and photo_file.filename:
+            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+            filename = f"{timestamp}_{secure_filename(photo_file.filename)}"
+            uploads_dir = os.path.join(app.static_folder, 'uploads')
+            if not os.path.exists(uploads_dir):
+                os.makedirs(uploads_dir)
+            photo_file.save(os.path.join(uploads_dir, filename))
+            cursor.execute('UPDATE users SET photo = ? WHERE id = ?', (filename, session['user_id']))
 
         cursor.execute(
             'UPDATE users SET username = ?, email = ?, location = ?, categories = ? WHERE id = ?',

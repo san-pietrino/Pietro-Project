@@ -1,3 +1,4 @@
+{% from 'macros.html' import user_avatar %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -78,6 +79,23 @@
             font-family: var(--font-secondary);
             font-size: 0.95rem;
         }
+        .avatar-upload-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .avatar-preview {
+            width: 64px;
+            height: 64px;
+            min-width: 64px;
+            border-radius: 50%;
+            background-color: #ff1493;
+            color: #0a2555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
         .edit-profile-modal .categories-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -130,7 +148,7 @@
         </header>
 
         <section class="profile-user-row">
-            <div class="profile-avatar icon icon-user"></div>
+            {{ user_avatar('profile-avatar', current_user_photo, link=false) }}
             <div class="profile-user-info">
                 <div class="profile-user-name-row">
                     <span class="profile-user-name">{{ user.username }}</span>
@@ -200,7 +218,20 @@
         <div class="modal-content">
             <button type="button" class="modal-close" onclick="closeEditProfileModal()" aria-label="Close">&times;</button>
             <h2>Edit Profile</h2>
-            <form method="POST" action="{{ url_for('edit_profile') }}">
+            <form method="POST" action="{{ url_for('edit_profile') }}" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="edit-photo">Profile Picture</label>
+                    <div class="avatar-upload-row">
+                        <div class="avatar-preview" id="avatarPreview">
+                            {% if user.photo %}
+                            <img src="{{ url_for('static', filename='uploads/' + user.photo) }}" alt="" id="avatarPreviewImg" class="avatar-photo">
+                            {% else %}
+                            <span class="icon icon-user" id="avatarPreviewIcon"></span>
+                            {% endif %}
+                        </div>
+                        <input type="file" id="edit-photo" name="photo" accept="image/*" onchange="previewAvatarPhoto(this)">
+                    </div>
+                </div>
                 <div class="form-group">
                     <label for="edit-username">Username</label>
                     <input type="text" id="edit-username" name="username" required value="{{ user.username }}">
@@ -242,6 +273,16 @@
                 closeEditProfileModal();
             }
         });
+
+        function previewAvatarPhoto(input) {
+            if (!input.files || !input.files[0]) return;
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                var preview = document.getElementById('avatarPreview');
+                preview.innerHTML = '<img src="' + event.target.result + '" alt="" class="avatar-photo">';
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
     </script>
 
     <script>

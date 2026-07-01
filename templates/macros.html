@@ -1,0 +1,7 @@
+{% macro user_avatar(css_class, photo, link=true) %}
+{% if link %}
+<a href="{{ url_for('profile') }}" class="{{ css_class }}{% if not photo %} icon icon-user{% endif %}" aria-label="Profile">{% if photo %}<img src="{{ url_for('static', filename='uploads/' + photo) }}" alt="" class="avatar-photo">{% endif %}</a>
+{% else %}
+<div class="{{ css_class }}{% if not photo %} icon icon-user{% endif %}">{% if photo %}<img src="{{ url_for('static', filename='uploads/' + photo) }}" alt="" class="avatar-photo">{% endif %}</div>
+{% endif %}
+{% endmacro %}
