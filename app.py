@@ -504,6 +504,13 @@ def start_chat_with_item(item_id):
     return redirect(url_for('chat', request_id=request_id))
 
 
+PROFILE_CATEGORIES = [
+    'Tools', 'Kitchen', 'Electronics', 'Study & Office', 'Sports & Outdoor',
+    'Events & Parties', 'Creative & Hobby', 'Gaming', 'Home & Living',
+    'Mobility', 'Baby & Child', 'Pets'
+]
+
+
 @app.route('/profile')
 def profile():
     """Show the user's profile page with owned and borrowed items."""
@@ -513,8 +520,9 @@ def profile():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('SELECT username, location FROM users WHERE id = ?', (session['user_id'],))
+    cursor.execute('SELECT username, email, location, categories FROM users WHERE id = ?', (session['user_id'],))
     user = cursor.fetchone()
+    user_categories = [c.strip() for c in (user['categories'] or '').split(',') if c.strip()]
 
     cursor.execute('SELECT id, name, photo, category, status FROM items WHERE owner_id = ?', (session['user_id'],))
     my_items = cursor.fetchall()
@@ -531,7 +539,46 @@ def profile():
 
     conn.close()
 
-    return render_template('profile.html', user=user, my_items=my_items, borrowed_items=borrowed_items)
+    return render_template('profile.html', user=user, my_items=my_items, borrowed_items=borrowed_items,
+                         categories=PROFILE_CATEGORIES, user_categories=user_categories)
+
+
+@app.route('/profile/edit', methods=['POST'])
+def edit_profile():
+    """Update the logged-in user's username, email, location and categories."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    username = request.form.get('username')
+    email = request.form.get('email')
+    location = request.form.get('location')
+    categories = request.form.getlist('categories')
+
+    if not username or not email:
+        return redirect(url_for('profile'))
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT id FROM users WHERE username = ? AND id != ?', (username, session['user_id']))
+        if cursor.fetchone():
+            return redirect(url_for('profile'))
+
+        cursor.execute('SELECT id FROM users WHERE email = ? AND id != ?', (email, session['user_id']))
+        if cursor.fetchone():
+            return redirect(url_for('profile'))
+
+        cursor.execute(
+            'UPDATE users SET username = ?, email = ?, location = ?, categories = ? WHERE id = ?',
+            (username, email, location, ','.join(categories), session['user_id'])
+        )
+        conn.commit()
+        session['username'] = username
+    finally:
+        conn.close()
+
+    return redirect(url_for('profile'))
 
 
 # ==================== ITEM SEARCH ====================

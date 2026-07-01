@@ -35,10 +35,22 @@
             box-shadow: 0 12px 24px rgba(0,0,0,0.12);
         }
         .add-item-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
             font-weight: 700;
             font-size: 1.1rem;
             color: #0a2555;
             letter-spacing: 0.05em;
+        }
+        .add-item-button svg {
+            width: 32px;
+            height: 32px;
+            stroke: #ff1493;
+            stroke-width: 3;
+            stroke-linecap: round;
+            fill: none;
         }
         .item-image {
             width: 100%;
@@ -188,7 +200,13 @@
         <main>
             <section class="your-items-section">
                 <div class="item-grid-card" onclick="openAddItemModal()">
-                    <div class="add-item-button"></div>
+                    <div class="add-item-button">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        <span>Add Item</span>
+                    </div>
                 </div>
                 
                 {% for item in user_items %}
