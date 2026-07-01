@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ item.name }} - Pietro</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename="icon - It's called Pietro.svg") }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🔧 Pietro</h1>
+            <h1><span class="icon icon-package" aria-hidden="true"></span> Pietro</h1>
             <nav>
                 <a href="{{ url_for('dashboard') }}">Dashboard</a>
                 <a href="{{ url_for('search') }}">Search</a>
@@ -40,7 +41,7 @@
         {% include 'footer_nav.html' %}
         
         <footer>
-            <p>Made with ❤️ for community sharing</p>
+            <p>Made with <span class="icon icon-heart" aria-hidden="true"></span> for community sharing</p>
         </footer>
     </div>
 </body>
