@@ -33,6 +33,7 @@
                 <h2 class="section-title">Pending requests:</h2>
 
                 {% if requests_for_me %}
+                    <div class="pending-cards-scroll">
                     {% for req in requests_for_me %}
                     <div class="pending-card">
                         <div class="pending-card-header">
@@ -46,7 +47,9 @@
                         </div>
                     </div>
                     {% endfor %}
+                    </div>
                 {% elif matching_requested_items %}
+                    <div class="pending-cards-scroll">
                     {% for item in matching_requested_items %}
                     <div class="pending-card">
                         <div class="pending-card-header">
@@ -60,6 +63,7 @@
                         </div>
                     </div>
                     {% endfor %}
+                    </div>
                 {% else %}
                     <p class="empty-state">No pending requests</p>
                 {% endif %}
@@ -68,5 +72,52 @@
 
         {% include 'footer_nav.html' %}
     </div>
+
+    <script>
+        (function() {
+            var palette = ['color-green', 'color-blue', 'color-pink', 'color-orange'];
+            var previous = null;
+            document.querySelectorAll('.pending-card').forEach(function(card) {
+                var choices = palette.filter(function(color) { return color !== previous; });
+                var chosen = choices[Math.floor(Math.random() * choices.length)];
+                card.classList.add(chosen);
+                previous = chosen;
+            });
+        })();
+
+        (function() {
+            var scroller = document.querySelector('.pending-cards-scroll');
+            if (!scroller) return;
+            var cards = Array.prototype.slice.call(scroller.querySelectorAll('.pending-card'));
+            var minScale = 0.85;
+            var minOpacity = 0.45;
+
+            function updateCardStyles() {
+                var containerRect = scroller.getBoundingClientRect();
+                var containerCenter = containerRect.left + containerRect.width / 2;
+                cards.forEach(function(card) {
+                    var rect = card.getBoundingClientRect();
+                    var cardCenter = rect.left + rect.width / 2;
+                    var maxDistance = containerRect.width / 2 + rect.width / 2;
+                    var ratio = Math.min(Math.abs(containerCenter - cardCenter) / maxDistance, 1);
+                    card.style.transform = 'scale(' + (1 - ratio * (1 - minScale)) + ')';
+                    card.style.opacity = 1 - ratio * (1 - minOpacity);
+                });
+            }
+
+            var ticking = false;
+            scroller.addEventListener('scroll', function() {
+                if (!ticking) {
+                    window.requestAnimationFrame(function() {
+                        updateCardStyles();
+                        ticking = false;
+                    });
+                    ticking = true;
+                }
+            });
+            window.addEventListener('resize', updateCardStyles);
+            updateCardStyles();
+        })();
+    </script>
 </body>
 </html>

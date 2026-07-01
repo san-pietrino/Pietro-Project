@@ -1231,16 +1231,40 @@ body.dashboard-page {
     color: #0a2555;
     margin: 8px 0 12px 0;
 }
+.pending-cards-scroll {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0 9%;
+    padding: 4px 9% 18px;
+    margin: 0 -50px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.pending-cards-scroll::-webkit-scrollbar {
+    display: none;
+}
 .pending-card {
-    background: #c8caf2;
+    flex: 0 0 82%;
+    scroll-snap-align: center;
     border-radius: 24px;
     padding: 10px;
     box-shadow: none;
     border: none;
-    margin-bottom: 18px;
+    transition: transform 0.2s ease, opacity 0.2s ease;
 }
-.pending-card:last-child {
-    margin-bottom: 0;
+.pending-card.color-green {
+    background: #cfe562;
+}
+.pending-card.color-blue {
+    background: #afd8f8;
+}
+.pending-card.color-pink {
+    background: #ff5ca8;
+}
+.pending-card.color-orange {
+    background: #ffb25b;
 }
 .pending-card-header {
     display: flex;
