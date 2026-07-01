@@ -1074,7 +1074,7 @@ footer {
     }
     
     nav {
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
     }
     
