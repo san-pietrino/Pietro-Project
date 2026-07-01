@@ -1543,7 +1543,7 @@ body.dashboard-page {
     .big-action-button { padding: 14px 32px; }
     .bottom-nav {
         gap: 8px;
-        padding: 12px 12px 16px;
+        padding: 12px 30px 16px;
     }
     .bottom-nav .nav-item {
         font-size: 0.78rem;
