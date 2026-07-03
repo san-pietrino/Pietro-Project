@@ -1237,8 +1237,11 @@ footer {
     display: flex;
     gap: 8px;
     align-items: center;
+    text-decoration: none;
+    cursor: pointer;
 }
-.search-form-mobile input {
+.search-form-mobile input,
+.search-form-mobile .search-bar-fake {
     flex: 1;
     padding: 14px 18px;
     border-radius: 30px;
@@ -1247,12 +1250,61 @@ footer {
     background: white;
     box-shadow: 0 6px 18px rgba(0,0,0,0.08);
 }
+.search-form-mobile .search-bar-fake {
+    color: #767676;
+}
 .search-form-mobile .search-btn {
     background: transparent;
     border: none;
     font-size: 1.3rem;
     padding: 6px 10px;
 }
+.categories-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 26px;
+}
+.category-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    aspect-ratio: 1 / 1;
+    border-radius: 24px;
+    padding: 16px;
+    text-decoration: none;
+    box-shadow: none;
+    border: none;
+    transition: transform 0.15s ease;
+}
+.category-card:active {
+    transform: scale(0.96);
+}
+.category-card.color-green {
+    background: #cfe562;
+}
+.category-card.color-blue {
+    background: #afd8f8;
+}
+.category-card.color-pink {
+    background: #ff5ca8;
+}
+.category-card.color-orange {
+    background: #ffb25b;
+}
+.category-icon {
+    font-size: 2.4rem;
+    line-height: 1;
+}
+.category-name {
+    font-weight: 700;
+    color: #0a2555;
+    font-family: var(--font-secondary);
+    font-size: 0.95rem;
+    line-height: 1.2;
+}
+.categories-section .section-title,
 .pending-section .section-title {
     font-size: 1.1rem;
     color: #0a2555;

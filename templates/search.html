@@ -65,13 +65,14 @@
         
         <main>
             <section class="search-section">
-                <h2><span class="icon icon-search" aria-hidden="true"></span> Search for Items</h2>
+                <h2><span class="icon icon-search" aria-hidden="true"></span> {% if category and not query %}{{ category }}{% else %}Search for Items{% endif %}</h2>
                 <form method="GET" action="{{ url_for('search') }}" class="search-form">
                     <input type="text" name="q" value="{{ query }}" placeholder="What are you looking for? (e.g., screwdriver)">
+                    {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
                     <button type="submit" class="btn-primary">Search</button>
                 </form>
-                
-                {% if query %}
+
+                {% if query or category %}
                     {% if message %}
                     <div class="unavailable-message">
                         <p>{{ message }}</p>

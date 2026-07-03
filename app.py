@@ -16,6 +16,22 @@ app.secret_key = 'pietro-secret-key-change-in-production'  # → see DECISIONS.m
 # Database configuration
 DATABASE = 'pietro.db'
 
+# Categories shown on the Explore page grid, with an icon/colour used since items don't have category images yet.
+EXPLORE_CATEGORIES = [
+    {'name': 'Tools', 'icon': '🛠️', 'color': 'color-green'},
+    {'name': 'Kitchen', 'icon': '🍳', 'color': 'color-blue'},
+    {'name': 'Electronics', 'icon': '🔌', 'color': 'color-pink'},
+    {'name': 'Study & Office', 'icon': '📚', 'color': 'color-orange'},
+    {'name': 'Sports & Outdoor', 'icon': '⚽', 'color': 'color-green'},
+    {'name': 'Events & Parties', 'icon': '🎉', 'color': 'color-blue'},
+    {'name': 'Creative & Hobby', 'icon': '🎨', 'color': 'color-pink'},
+    {'name': 'Gaming', 'icon': '🎮', 'color': 'color-orange'},
+    {'name': 'Home & Living', 'icon': '🛋️', 'color': 'color-green'},
+    {'name': 'Mobility', 'icon': '🚲', 'color': 'color-blue'},
+    {'name': 'Baby & Child', 'icon': '🧸', 'color': 'color-pink'},
+    {'name': 'Pets', 'icon': '🐾', 'color': 'color-orange'},
+]
+
 
 def get_db_connection():
     """Get a database connection. Creates tables if they don't exist."""
@@ -474,13 +490,22 @@ def dashboard():
     
     conn.close()
     
-    return render_template('dashboard.html', 
+    return render_template('dashboard.html',
                          username=session['username'],
                          success_message=success_message,
                          my_items=my_items,
                          requests_for_me=requests_for_me,
                          matching_requested_items=matching_requested_items,
                          my_requests=my_requests)
+
+
+@app.route('/explore')
+def explore():
+    """Explore page - browse items by category, opened from the dashboard search bar."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    return render_template('explore.html', categories=EXPLORE_CATEGORIES)
 
 
 @app.route('/start-chat/<int:item_id>')
@@ -617,57 +642,72 @@ def search():
         return redirect(url_for('login'))
     
     query = request.args.get('q', '')
-    
-    if not query:
+    category = request.args.get('category', '')
+
+    if not query and not category:
         return render_template('search.html', items=[], query='', message='Enter an item name to search')
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # Get user's location for proximity sorting
     cursor.execute('SELECT location FROM users WHERE id = ?', (session['user_id'],))
     user = cursor.fetchone()
     user_location = user['location'] if user else ''
-    
-    # Search for items (case-insensitive)
-    cursor.execute('''
+
+    # Search for items (case-insensitive), optionally narrowed to a category
+    conditions = ["i.status = 'available'"]
+    params = []
+    if query:
+        conditions.append('i.name LIKE ?')
+        params.append(f'%{query}%')
+    if category:
+        conditions.append('i.category = ?')
+        params.append(category)
+    params.extend([user_location, f'%{user_location}%'])
+
+    cursor.execute(f'''
         SELECT i.*, u.username as owner, u.location as owner_location
         FROM items i
         JOIN users u ON i.owner_id = u.id
-        WHERE i.name LIKE ? AND i.status = 'available'
-        ORDER BY 
+        WHERE {' AND '.join(conditions)}
+        ORDER BY
             CASE WHEN u.location = ? THEN 0
                  WHEN u.location LIKE ? THEN 1
                  ELSE 2 END
-    ''', (f'%{query}%', user_location, f'%{user_location}%'))
-    
+    ''', params)
+
     items = cursor.fetchall()
-    
+
     if not items:
-        # Item doesn't exist, show message to user about requesting it
-        cursor.execute('''
-            SELECT * FROM items WHERE name LIKE ? AND status = 'requested'
-        ''', (f'%{query}%',))
-        
-        requested_items = cursor.fetchall()
+        if query:
+            # Item doesn't exist, show message to user about requesting it
+            cursor.execute('''
+                SELECT * FROM items WHERE name LIKE ? AND status = 'requested'
+            ''', (f'%{query}%',))
+            requested_items = cursor.fetchall()
+        else:
+            requested_items = []
+
+        conn.close()
         if requested_items:
-            conn.close()
-            return render_template('search.html', 
-                                 items=[], 
+            return render_template('search.html',
+                                 items=[],
                                  query=query,
+                                 category=category,
                                  message='The requested item is currently unavailable. See pending requests:',
                                  requested_items=requested_items,
                                  show_request_form=True)
         else:
-            conn.close()
-            return render_template('search.html', 
-                                 items=[], 
+            return render_template('search.html',
+                                 items=[],
                                  query=query,
-                                 message='The requested item is currently unavailable.',
-                                 show_request_form=True)
-    
+                                 category=category,
+                                 message='No items found in this category yet.' if category else 'The requested item is currently unavailable.',
+                                 show_request_form=bool(query))
+
     conn.close()
-    return render_template('search.html', items=items, query=query)
+    return render_template('search.html', items=items, query=query, category=category)
 
 
 @app.route('/request-item', methods=['GET', 'POST'])

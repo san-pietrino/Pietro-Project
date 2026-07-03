@@ -1,0 +1,39 @@
+{% from 'macros.html' import user_avatar %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explore - Pietro</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename="icon - It's called Pietro.svg") }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="dashboard-page">
+    <div class="container dashboard-mobile">
+        <header class="dashboard-header">
+            <h1 class="welcome">explore</h1>
+            {{ user_avatar('avatar', current_user_photo) }}
+            <form class="search-form-mobile" action="{{ url_for('search') }}" method="GET">
+                <input type="text" name="q" placeholder="what are you looking for?" aria-label="search" autofocus>
+                <button type="submit" class="search-btn"><span class="icon icon-search" aria-hidden="true"></span><span class="sr-only">Search</span></button>
+            </form>
+        </header>
+
+        <main>
+            <section class="categories-section">
+                <h2 class="section-title">Browse categories:</h2>
+                <div class="categories-grid">
+                    {% for category in categories %}
+                    <a class="category-card {{ category.color }}" href="{{ url_for('search', category=category.name) }}">
+                        <span class="category-icon" aria-hidden="true">{{ category.icon }}</span>
+                        <span class="category-name">{{ category.name }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </section>
+        </main>
+
+        {% include 'footer_nav.html' %}
+    </div>
+</body>
+</html>
