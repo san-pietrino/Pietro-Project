@@ -63,12 +63,12 @@
                 <div class="error">{{ error }}</div>
                 {% endif %}
                 
-                <form method="POST" action="{{ url_for('request_item') }}" class="request-form">
+                <form method="POST" action="{{ url_for('request_item') }}" class="request-form" enctype="multipart/form-data">
                     <div class="form-group">
                         <label for="item_name">Item Name *</label>
                         <input type="text" id="item_name" name="item_name" required placeholder="What item do you need?">
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Category *</label>
                         <div class="categories-list">
@@ -80,13 +80,19 @@
                             {% endfor %}
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="description">Description</label>
                         <textarea id="description" name="description" rows="4" placeholder="Describe what you're looking for..."></textarea>
                         <small>Optional - provide details about what you need</small>
                     </div>
-                    
+
+                    <div class="form-group">
+                        <label for="photo">Photo</label>
+                        <input type="file" id="photo" name="photo" accept="image/*">
+                        <small>Optional - a picture of what you're looking for helps others recognize it</small>
+                    </div>
+
                     <button type="submit" class="btn-primary">Submit Request</button>
                 </form>
             </section>

@@ -1,3 +1,4 @@
+{% from 'macros.html' import user_avatar %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,122 +8,203 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename="icon - It's called Pietro.svg") }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
-        .unavailable-message {
-            background-color: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 20px;
+        .search-result-card {
+            background: white;
+            border-radius: 24px;
+            padding: 18px;
+            margin-bottom: 14px;
         }
-        .pending-requests {
-            background-color: #e3f2fd;
-            border-left: 4px solid #2196f3;
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-        }
-        .request-form-inline {
-            background-color: #f5f5f5;
-            padding: 20px;
-            border-radius: 4px;
-            margin-top: 20px;
-        }
-        .category-option {
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 4px;
-            cursor: pointer;
+        .search-result-card .category-tag {
             display: inline-block;
-            margin-right: 10px;
+            background: rgba(0, 38, 204, 0.08);
+            color: #0026CF;
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 12px;
             margin-bottom: 10px;
-            transition: all 0.3s ease;
         }
-        .category-option input[type="radio"] {
+        .search-result-card h3 {
+            color: #0a2555;
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+        .search-result-card .request-thumb {
+            width: 100%;
+            max-height: 160px;
+            object-fit: cover;
+            border-radius: 16px;
+            margin-bottom: 10px;
+        }
+        .search-result-card p {
+            color: #333333;
+            font-family: var(--font-secondary);
+            letter-spacing: normal;
+            margin-bottom: 8px;
+        }
+        .search-result-card .owner-line {
+            color: #666666;
+            font-family: var(--font-secondary);
+            letter-spacing: normal;
+            font-size: 0.85rem;
+            margin-bottom: 14px;
+        }
+        .btn-view {
+            display: inline-block;
+            padding: 10px 22px;
+            background: #ff1493;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            font-family: var(--font-secondary);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .search-info-card {
+            background: #ffe8b0;
+            border-radius: 20px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
+            color: #6b4c00;
+            font-family: var(--font-secondary);
+            letter-spacing: normal;
+        }
+        .search-pending-card {
+            background: #afd8f8;
+            border-radius: 20px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
+        }
+        .search-pending-card h3 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #0a2555;
+            font-size: 1rem;
+            margin-bottom: 12px;
+        }
+        .search-pending-card .search-result-card {
+            margin-bottom: 10px;
+        }
+        .search-pending-card .search-result-card:last-child {
+            margin-bottom: 0;
+        }
+        .search-request-card {
+            background: white;
+            border-radius: 24px;
+            padding: 20px;
+            margin-top: 4px;
+        }
+        .search-request-card h3 {
+            color: #0a2555;
+            margin-bottom: 8px;
+        }
+        .search-request-card p {
+            color: #333333;
+            font-family: var(--font-secondary);
+            letter-spacing: normal;
+            margin-bottom: 16px;
+        }
+        .search-request-card .categories-inline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .search-request-card .category-option {
+            padding: 8px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .search-request-card .category-option input[type="radio"] {
             display: none;
         }
-        .category-option input[type="radio"]:checked + label {
-            background-color: #1976d2;
-            color: white;
-            border-color: #1976d2;
+        .search-request-card .category-option input[type="radio"]:checked + label {
+            color: #ff1493;
+            font-weight: 700;
         }
-        .category-option label {
+        .search-request-card .category-option label {
             cursor: pointer;
-            display: block;
             margin: 0;
+            font-family: var(--font-secondary);
+            letter-spacing: normal;
+        }
+        .search-prompt {
+            color: #666666;
+            text-align: center;
+            margin-top: 20px;
+            font-family: var(--font-secondary);
+            letter-spacing: normal;
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1><span class="icon icon-package" aria-hidden="true"></span> Pietro</h1>
-            <nav>
-                <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                <a href="{{ url_for('add_item') }}">Add Item</a>
-                <a href="{{ url_for('logout') }}">Logout</a>
-            </nav>
+<body class="dashboard-page">
+    <div class="container dashboard-mobile">
+        <header class="dashboard-header">
+            <h1 class="welcome">Search</h1>
+            {{ user_avatar('avatar', current_user_photo) }}
+            <form class="search-form-mobile" action="{{ url_for('search') }}" method="GET">
+                <input type="text" name="q" value="{{ query }}" placeholder="what are you looking for?" aria-label="search">
+                <button type="submit" class="search-btn"><span class="icon icon-search" aria-hidden="true"></span><span class="sr-only">Search</span></button>
+            </form>
         </header>
-        
+
         <main>
-            <section class="search-section">
-                <h2><span class="icon icon-search" aria-hidden="true"></span> Search for Items</h2>
-                <form method="GET" action="{{ url_for('search') }}" class="search-form">
-                    <input type="text" name="q" value="{{ query }}" placeholder="What are you looking for? (e.g., screwdriver)">
-                    <button type="submit" class="btn-primary">Search</button>
-                </form>
-                
+            <section class="pending-section">
                 {% if query %}
                     {% if message %}
-                    <div class="unavailable-message">
+                    <div class="search-info-card">
                         <p>{{ message }}</p>
                     </div>
                     {% endif %}
-                    
+
                     {% if requested_items %}
-                    <div class="pending-requests">
+                    <div class="search-pending-card">
                         <h3><span class="icon icon-list" aria-hidden="true"></span> Pending Requests</h3>
-                        <div class="item-list">
-                            {% for item in requested_items %}
-                            <div class="item-card">
-                                <h4>{{ item.name }}</h4>
-                                {% if item.description %}
-                                <p>{{ item.description }}</p>
-                                {% endif %}
-                                <p class="owner-info">Requested by someone</p>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if items %}
-                    <div class="item-list">
-                        <h3><span class="icon icon-package" aria-hidden="true"></span> Available Items</h3>
-                        {% for item in items %}
-                        <div class="item-card">
+                        {% for item in requested_items %}
+                        <div class="search-result-card">
+                            {% if item.photo %}
+                            <img src="{{ url_for('static', filename='uploads/' + item.photo) }}" alt="{{ item.name }}" class="request-thumb">
+                            {% endif %}
                             <h3>{{ item.name }}</h3>
-                            <p><strong>Category:</strong> {{ item.category }}</p>
                             {% if item.description %}
                             <p>{{ item.description }}</p>
                             {% endif %}
-                            <p class="owner-info">Owner: {{ item.owner }} ({{ item.owner_location }})</p>
-                            <a href="{{ url_for('item_detail', item_id=item.id) }}" class="btn-primary">View & Borrow</a>
+                            <p class="owner-line">Requested by someone</p>
                         </div>
                         {% endfor %}
                     </div>
+                    {% endif %}
+
+                    {% if items %}
+                    <h2 class="section-title">Available items:</h2>
+                    {% for item in items %}
+                    <div class="search-result-card">
+                        <span class="category-tag">{{ item.category }}</span>
+                        <h3>{{ item.name }}</h3>
+                        {% if item.description %}
+                        <p>{{ item.description }}</p>
+                        {% endif %}
+                        <p class="owner-line">Owner: {{ item.owner }} ({{ item.owner_location }})</p>
+                        <a href="{{ url_for('item_detail', item_id=item.id) }}" class="btn-view">View &amp; Borrow</a>
+                    </div>
+                    {% endfor %}
                     {% elif show_request_form %}
-                    <div class="request-form-inline">
+                    <div class="search-request-card">
                         <h3>Didn't find what you need?</h3>
                         <p>Submit a request and users interested in this category will be notified!</p>
-                        <form method="POST" action="{{ url_for('request_item') }}">
+                        <form method="POST" action="{{ url_for('request_item') }}" enctype="multipart/form-data">
                             <div class="form-group">
                                 <label for="item_name">Item Name</label>
                                 <input type="text" id="item_name" name="item_name" required placeholder="{{ query }}">
                             </div>
-                            
+
                             <div class="form-group">
                                 <label>Category</label>
-                                <div style="display: flex; flex-wrap: wrap;">
+                                <div class="categories-inline">
                                     {% set categories_list = ['Tools', 'Kitchen', 'Electronics', 'Study & Office', 'Sports & Outdoor', 'Events & Parties', 'Creative & Hobby', 'Gaming', 'Home & Living', 'Mobility', 'Baby & Child', 'Pets'] %}
                                     {% for category in categories_list %}
                                     <div class="category-option">
@@ -132,13 +214,18 @@
                                     {% endfor %}
                                 </div>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label for="description">Description</label>
                                 <textarea id="description" name="description" rows="3" placeholder="Describe what you're looking for..."></textarea>
                             </div>
-                            
-                            <button type="submit" class="btn-primary">Submit Request</button>
+
+                            <div class="form-group">
+                                <label for="photo">Photo</label>
+                                <input type="file" id="photo" name="photo" accept="image/*">
+                            </div>
+
+                            <button type="submit" class="btn-view">Submit Request</button>
                         </form>
                     </div>
                     {% endif %}
@@ -148,10 +235,6 @@
             </section>
         </main>
         {% include 'footer_nav.html' %}
-        
-        <footer>
-            <p>Made with <span class="icon icon-heart" aria-hidden="true"></span> for community sharing</p>
-        </footer>
     </div>
 </body>
 </html>

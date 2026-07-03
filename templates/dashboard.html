@@ -43,7 +43,11 @@
                         </div>
                         <p class="request-desc">Looking for a {{ req.item_name }}.</p>
                         <div class="request-image-card">
-                            <img src="{{ url_for('static', filename='img_screwdriver.png') }}" alt="Screwdriver placeholder" class="request-image">
+                            {% if req.item_photo %}
+                            <img src="{{ url_for('static', filename='uploads/' + req.item_photo) }}" alt="{{ req.item_name }}" class="request-image">
+                            {% else %}
+                            <img src="{{ url_for('static', filename='img_screwdriver.png') }}" alt="{{ req.item_name }}" class="request-image">
+                            {% endif %}
                             <a href="{{ url_for('respond_request', request_id=req.id) }}" class="big-action-button">I have one!</a>
                         </div>
                     </div>
@@ -59,7 +63,11 @@
                         </div>
                         <p class="request-desc">Looking for a {{ item.name }}.</p>
                         <div class="request-image-card">
-                            <img src="{{ url_for('static', filename='img_screwdriver.png') }}" alt="Screwdriver placeholder" class="request-image">
+                            {% if item.photo %}
+                            <img src="{{ url_for('static', filename='uploads/' + item.photo) }}" alt="{{ item.name }}" class="request-image">
+                            {% else %}
+                            <img src="{{ url_for('static', filename='img_screwdriver.png') }}" alt="{{ item.name }}" class="request-image">
+                            {% endif %}
                             <a href="{{ url_for('start_chat_with_item', item_id=item.id) }}" class="big-action-button">I have one!</a>
                         </div>
                     </div>

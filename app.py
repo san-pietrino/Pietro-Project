@@ -420,7 +420,7 @@ def dashboard():
     
     # Get requests for my items
     cursor.execute('''
-        SELECT r.id, r.status, r.created_at, i.name as item_name, u.username as borrower
+        SELECT r.id, r.status, r.created_at, i.name as item_name, i.photo as item_photo, u.username as borrower
         FROM requests r
         JOIN items i ON r.item_id = i.id
         JOIN users u ON r.borrower_id = u.id
@@ -441,7 +441,7 @@ def dashboard():
     if user_categories:
         for category in user_categories:
             cursor.execute('''
-                SELECT i.id, i.name, i.description, u.username as owner
+                SELECT i.id, i.name, i.description, i.photo, u.username as owner
                 FROM items i
                 JOIN users u ON i.owner_id = u.id
                 WHERE i.category = ? AND i.owner_id != ? AND i.status = 'requested'
@@ -454,7 +454,7 @@ def dashboard():
 
     if not matching_requested_items:
         cursor.execute('''
-            SELECT i.id, i.name, i.description, u.username as owner
+            SELECT i.id, i.name, i.description, i.photo, u.username as owner
             FROM items i
             JOIN users u ON i.owner_id = u.id
             WHERE i.owner_id != ? AND i.status = 'requested'
@@ -686,20 +686,31 @@ def request_item():
         item_name = request.form.get('item_name')
         category = request.form.get('category')
         description = request.form.get('description', '')
-        
+        photo_file = request.files.get('photo')
+
         if not item_name or not category:
-            return render_template('request_item.html', 
+            return render_template('request_item.html',
                                  error='Item name and category are required',
                                  categories=categories_list)
-        
+
+        photo = None
+        if photo_file and photo_file.filename:
+            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+            filename = f"{timestamp}_{secure_filename(photo_file.filename)}"
+            uploads_dir = os.path.join(app.static_folder, 'uploads')
+            if not os.path.exists(uploads_dir):
+                os.makedirs(uploads_dir)
+            photo_file.save(os.path.join(uploads_dir, filename))
+            photo = filename
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # Create a "requested" item
         cursor.execute('''
-            INSERT INTO items (name, description, owner_id, category, status)
-            VALUES (?, ?, ?, ?, 'requested')
-        ''', (item_name, description, session['user_id'], category))
+            INSERT INTO items (name, description, owner_id, category, status, photo)
+            VALUES (?, ?, ?, ?, 'requested', ?)
+        ''', (item_name, description, session['user_id'], category, photo))
         
         # Send notifications to users interested in this category
         cursor.execute('''
