@@ -14,6 +14,26 @@
             padding: 18px;
             margin-bottom: 14px;
         }
+        .categories-nav {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .category-chip {
+            padding: 6px 12px;
+            background: #f2f4f8;
+            border-radius: 16px;
+            color: #0a2555;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .category-chip.active {
+            background: #ffebf5;
+            color: #ff1493;
+            border: 1px solid #ffd0e8;
+        }
         .search-result-card .category-tag {
             display: inline-block;
             background: rgba(0, 38, 204, 0.08);
@@ -150,11 +170,21 @@
                 <input type="text" name="q" value="{{ query }}" placeholder="what are you looking for?" aria-label="search">
                 <button type="submit" class="search-btn"><span class="icon icon-search" aria-hidden="true"></span><span class="sr-only">Search</span></button>
             </form>
+
+            {% if not category %}
+            <nav class="categories-nav">
+                {% for cat in categories %}
+                <a href="{{ url_for('search', category=cat) }}" class="category-chip {% if category == cat %}active{% endif %}"> {{ cat }} </a>
+                {% endfor %}
+            </nav>
+            {% endif %}
         </header>
+
+            <!-- categories bar removed to avoid duplicate category links -->
 
         <main>
             <section class="pending-section">
-                {% if query %}
+                {% if query or category %}
                     {% if message %}
                     <div class="search-info-card">
                         <p>{{ message }}</p>
@@ -230,7 +260,7 @@
                     </div>
                     {% endif %}
                 {% else %}
-                <p class="search-prompt">Enter a search term to find items near you</p>
+                <p class="search-prompt">Select a category or enter a search term to find items near you</p>
                 {% endif %}
             </section>
         </main>

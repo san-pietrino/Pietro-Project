@@ -644,8 +644,11 @@ def search():
     query = request.args.get('q', '')
     category = request.args.get('category', '')
 
+    # Provide categories for the template to allow quick category selection
+    categories = [c['name'] for c in EXPLORE_CATEGORIES]
+
     if not query and not category:
-        return render_template('search.html', items=[], query='', message='Enter an item name to search')
+        return render_template('search.html', items=[], query='', message='Enter an item name to search', categories=categories)
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -697,17 +700,19 @@ def search():
                                  category=category,
                                  message='The requested item is currently unavailable. See pending requests:',
                                  requested_items=requested_items,
-                                 show_request_form=True)
+                                 show_request_form=True,
+                                 categories=categories)
         else:
             return render_template('search.html',
                                  items=[],
                                  query=query,
                                  category=category,
                                  message='No items found in this category yet.' if category else 'The requested item is currently unavailable.',
-                                 show_request_form=bool(query))
+                                 show_request_form=bool(query),
+                                 categories=categories)
 
     conn.close()
-    return render_template('search.html', items=items, query=query, category=category)
+    return render_template('search.html', items=items, query=query, category=category, categories=categories)
 
 
 @app.route('/request-item', methods=['GET', 'POST'])
