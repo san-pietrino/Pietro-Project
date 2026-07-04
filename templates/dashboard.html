@@ -33,7 +33,7 @@
             <section class="pending-section">
                 <h2 class="section-title">Pending requests:</h2>
 
-                {% if requests_for_me %}
+                {% if requests_for_me or my_open_requests or matching_requested_items %}
                     <div class="pending-cards-scroll">
                     {% for req in requests_for_me %}
                     <div class="pending-card">
@@ -52,9 +52,23 @@
                         </div>
                     </div>
                     {% endfor %}
+                    {% for item in my_open_requests %}
+                    <div class="pending-card">
+                        <div class="pending-card-header">
+                            <div class="requester-avatar icon icon-user"></div>
+                            <div class="requester-name">You</div>
+                        </div>
+                        <p class="request-desc">You're looking for a {{ item.name }}.</p>
+                        <div class="request-image-card">
+                            {% if item.photo %}
+                            <img src="{{ url_for('static', filename='uploads/' + item.photo) }}" alt="{{ item.name }}" class="request-image">
+                            {% else %}
+                            <img src="{{ url_for('static', filename='img_screwdriver.png') }}" alt="{{ item.name }}" class="request-image">
+                            {% endif %}
+                            <span class="big-action-button disabled">Waiting for a match</span>
+                        </div>
                     </div>
-                {% elif matching_requested_items %}
-                    <div class="pending-cards-scroll">
+                    {% endfor %}
                     {% for item in matching_requested_items %}
                     <div class="pending-card">
                         <div class="pending-card-header">

@@ -460,9 +460,9 @@ def dashboard():
                 SELECT i.id, i.name, i.description, i.photo, u.username as owner
                 FROM items i
                 JOIN users u ON i.owner_id = u.id
-                WHERE i.category = ? AND i.owner_id != ? AND i.status = 'requested'
+                WHERE i.category LIKE ? AND i.owner_id != ? AND i.status = 'requested'
                 ORDER BY i.id DESC
-            ''', (category, session['user_id']))
+            ''', (f'%{category}%', session['user_id']))
             for item in cursor.fetchall():
                 if item['id'] not in seen_request_ids:
                     matching_requested_items.append(item)
@@ -477,7 +477,16 @@ def dashboard():
             ORDER BY i.id DESC
         ''', (session['user_id'],))
         matching_requested_items = cursor.fetchall()
-    
+
+    # Get the items I'm looking for myself (created via "Request an Item")
+    cursor.execute('''
+        SELECT id, name, photo
+        FROM items
+        WHERE owner_id = ? AND status = 'requested'
+        ORDER BY id DESC
+    ''', (session['user_id'],))
+    my_open_requests = cursor.fetchall()
+
     # Get my borrowing requests
     cursor.execute('''
         SELECT r.id, r.status, r.created_at, i.name as item_name
@@ -496,6 +505,7 @@ def dashboard():
                          my_items=my_items,
                          requests_for_me=requests_for_me,
                          matching_requested_items=matching_requested_items,
+                         my_open_requests=my_open_requests,
                          my_requests=my_requests)
 
 
@@ -566,7 +576,7 @@ def profile():
     user = cursor.fetchone()
     user_categories = [c.strip() for c in (user['categories'] or '').split(',') if c.strip()]
 
-    cursor.execute('SELECT id, name, photo, category, status FROM items WHERE owner_id = ?', (session['user_id'],))
+    cursor.execute("SELECT id, name, photo, category, status FROM items WHERE owner_id = ? AND status != 'requested'", (session['user_id'],))
     my_items = cursor.fetchall()
 
     cursor.execute('''
@@ -729,14 +739,16 @@ def request_item():
     
     if request.method == 'POST':
         item_name = request.form.get('item_name')
-        category = request.form.get('category')
+        categories = request.form.getlist('categories')
         description = request.form.get('description', '')
         photo_file = request.files.get('photo')
 
-        if not item_name or not category:
+        if not item_name or not categories:
             return render_template('request_item.html',
                                  error='Item name and category are required',
                                  categories=categories_list)
+
+        category = ','.join(categories)
 
         photo = None
         if photo_file and photo_file.filename:
