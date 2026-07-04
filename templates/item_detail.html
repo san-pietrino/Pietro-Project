@@ -39,7 +39,9 @@
                 <div class="item-detail-footer-row">
                     <p class="item-detail-owner">by {{ item.owner }}<br>{{ item.owner_location }}</p>
 
-                    {% if item.status == 'available' %}
+                    {% if item.owner_id == session['user_id'] %}
+                    <span class="item-detail-unavailable">This is your item</span>
+                    {% elif item.status == 'available' %}
                     <form method="POST" action="{{ url_for('borrow_item', item_id=item.id) }}">
                         <button type="submit" class="item-detail-request-btn">Request</button>
                     </form>

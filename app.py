@@ -16,6 +16,19 @@ app.secret_key = 'pietro-secret-key-change-in-production'  # → see DECISIONS.m
 # Database configuration
 DATABASE = 'pietro.db'
 
+
+@app.url_defaults
+def add_static_file_version(endpoint, values):
+    """Bust the browser cache for static files (icons, CSS, etc.) whenever the
+    underlying file changes, by appending its mtime as a query param. Without
+    this, re-uploading an asset under the same filename (e.g. a new SVG icon)
+    keeps serving the old cached version."""
+    if endpoint != 'static' or 'filename' not in values:
+        return
+    filepath = os.path.join(app.static_folder, values['filename'])
+    if os.path.exists(filepath):
+        values['v'] = int(os.path.getmtime(filepath))
+
 # Categories shown on the Explore page grid, with an icon/colour used since items don't have category images yet.
 EXPLORE_CATEGORIES = [
     {'name': 'Tools', 'icon': '🛠️', 'color': 'color-green'},
@@ -552,6 +565,10 @@ def start_chat_with_item(item_id):
         conn.close()
         return redirect(url_for('dashboard'))
 
+    if item['owner_id'] == session['user_id']:
+        conn.close()
+        return redirect(url_for('dashboard'))
+
     # If a chat request already exists for this user and item, reuse it.
     cursor.execute('''
         SELECT id FROM requests
@@ -742,9 +759,10 @@ def search():
     user_lat = user['latitude'] if user else None
     user_lon = user['longitude'] if user else None
 
-    # Search for items (case-insensitive), optionally narrowed to a category
-    conditions = ["i.status = 'available'"]
-    params = [user_lat, user_lon]
+    # Search for items (case-insensitive), optionally narrowed to a category.
+    # Never show the viewer their own items - you can't borrow what you already have.
+    conditions = ["i.status = 'available'", "i.owner_id != ?"]
+    params = [user_lat, user_lon, session['user_id']]
     if query:
         conditions.append('i.name LIKE ?')
         params.append(f'%{query}%')
@@ -903,10 +921,14 @@ def borrow_item(item_id):
     # Check if item is available
     cursor.execute('SELECT * FROM items WHERE id = ? AND status = ?', (item_id, 'available'))
     item = cursor.fetchone()
-    
+
     if not item:
         return "Item not available", 400
-    
+
+    if item['owner_id'] == session['user_id']:
+        conn.close()
+        return "You can't borrow your own item", 400
+
     # Create borrow request
     cursor.execute('''
         INSERT INTO requests (item_id, borrower_id, status)
