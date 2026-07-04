@@ -961,6 +961,11 @@ def respond_request(request_id):
         cursor.execute('UPDATE requests SET status = ? WHERE id = ?', ('declined', request_id))
         # Suspend the item temporarily
         cursor.execute('UPDATE items SET status = ? WHERE id = ?', ('suspended', request_data['item_id']))
+        # Let the requester know automatically
+        cursor.execute('''
+            INSERT INTO messages (request_id, sender_id, content)
+            VALUES (?, ?, ?)
+        ''', (request_id, session['user_id'], "Sorry, I can't lend this item right now :("))
 
     conn.commit()
     conn.close()
