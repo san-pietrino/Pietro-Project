@@ -7,42 +7,50 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename="icon - It's called Pietro.svg") }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1><span class="icon icon-package" aria-hidden="true"></span> Pietro</h1>
-            <nav>
-                <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                <a href="{{ url_for('search') }}">Search</a>
-                <a href="{{ url_for('logout') }}">Logout</a>
-            </nav>
+<body class="dashboard-page">
+    <div class="container dashboard-mobile">
+        <header class="dashboard-header item-detail-backdrop" aria-hidden="true">
+            <h1 class="welcome">
+                <a href="javascript:history.back()" class="item-detail-back" aria-label="Back">&lsaquo;</a>
+                Explore:
+            </h1>
+            <div class="search-form-mobile">
+                <div class="search-bar-wrapper">
+                    <span class="search-bar-fake">what are you looking for?</span>
+                </div>
+            </div>
         </header>
-        
+
         <main>
-            <section class="item-detail-section">
-                <div class="item-detail-card">
-                    <h2>{{ item.name }}</h2>
-                    <p class="category-badge">Category: <strong>{{ item.category }}</strong></p>
-                    <p class="item-description">{{ item.description }}</p>
-                    <p class="owner-info">Owner: {{ item.owner }}</p>
-                    <p class="location-info">Location: {{ item.owner_location }}</p>
-                    <p class="status-info">Status: <span class="status-badge {{ item.status }}">{{ item.status }}</span></p>
-                    
-                    {% if item.status == 'available' %}
-                    <form method="POST" action="{{ url_for('borrow_item', item_id=item.id) }}">
-                        <button type="submit" class="btn-primary btn-borrow">Request to Borrow</button>
-                    </form>
-                    {% else %}
-                    <p class="unavailable-message">This item is currently unavailable</p>
+            <div class="item-detail-modal">
+                {% if item.category %}
+                <span class="category-tag">{{ item.category }}</span>
+                {% endif %}
+                <h2 class="item-detail-name">{{ item.name }}</h2>
+
+                <div class="item-detail-photo">
+                    {% if item.photo %}
+                    <img src="{{ url_for('static', filename='uploads/' + item.photo) }}" alt="{{ item.name }}">
                     {% endif %}
                 </div>
-            </section>
+
+                <p class="item-detail-description">{{ item.description or 'No description provided.' }}</p>
+
+                <div class="item-detail-footer-row">
+                    <p class="item-detail-owner">by {{ item.owner }}<br>{{ item.owner_location }}</p>
+
+                    {% if item.status == 'available' %}
+                    <form method="POST" action="{{ url_for('borrow_item', item_id=item.id) }}">
+                        <button type="submit" class="item-detail-request-btn">Request</button>
+                    </form>
+                    {% else %}
+                    <span class="item-detail-unavailable">Unavailable</span>
+                    {% endif %}
+                </div>
+            </div>
         </main>
+
         {% include 'footer_nav.html' %}
-        
-        <footer>
-            <p>Made with <span class="icon icon-heart" aria-hidden="true"></span> for community sharing</p>
-        </footer>
     </div>
 </body>
 </html>
