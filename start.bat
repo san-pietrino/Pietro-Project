@@ -36,3 +36,4 @@ echo.
 
 REM Open browser
 start http://127.0.0.1:8001
+start http://127.0.0.1:8001
