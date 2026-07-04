@@ -913,9 +913,16 @@ def borrow_item(item_id):
         VALUES (?, ?, 'pending')
     ''', (item_id, session['user_id']))
     request_id = cursor.lastrowid
+
+    # Kick off the chat with an automatic greeting from the borrower
+    cursor.execute('''
+        INSERT INTO messages (request_id, sender_id, content)
+        VALUES (?, ?, ?)
+    ''', (request_id, session['user_id'], "Heyy, I requested your Item!\nlet me know :)"))
+
     conn.commit()
     conn.close()
-    
+
     return redirect(url_for('dashboard'))
 
 
