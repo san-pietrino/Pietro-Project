@@ -477,7 +477,16 @@ def dashboard():
             ORDER BY i.id DESC
         ''', (session['user_id'],))
         matching_requested_items = cursor.fetchall()
-    
+
+    # Get the items I'm looking for myself (created via "Request an Item")
+    cursor.execute('''
+        SELECT id, name, photo
+        FROM items
+        WHERE owner_id = ? AND status = 'requested'
+        ORDER BY id DESC
+    ''', (session['user_id'],))
+    my_open_requests = cursor.fetchall()
+
     # Get my borrowing requests
     cursor.execute('''
         SELECT r.id, r.status, r.created_at, i.name as item_name
@@ -496,6 +505,7 @@ def dashboard():
                          my_items=my_items,
                          requests_for_me=requests_for_me,
                          matching_requested_items=matching_requested_items,
+                         my_open_requests=my_open_requests,
                          my_requests=my_requests)
 
 
@@ -566,7 +576,7 @@ def profile():
     user = cursor.fetchone()
     user_categories = [c.strip() for c in (user['categories'] or '').split(',') if c.strip()]
 
-    cursor.execute('SELECT id, name, photo, category, status FROM items WHERE owner_id = ?', (session['user_id'],))
+    cursor.execute("SELECT id, name, photo, category, status FROM items WHERE owner_id = ? AND status != 'requested'", (session['user_id'],))
     my_items = cursor.fetchall()
 
     cursor.execute('''
