@@ -154,17 +154,17 @@
                     <span class="profile-user-name">{{ user.username }}</span>
                     <button class="profile-edit-button" type="button" aria-label="Edit profile" onclick="openEditProfileModal()"><span class="icon icon-pencil" aria-hidden="true"></span></button>
                 </div>
-                <p class="profile-location">{{ user.location or 'Unknown' }}</p>
+                <!--<p class="profile-location">{{ user.location or 'Unknown' }}</p>-->
                 <a href="{{ url_for('logout') }}" class="profile-logout-btn">Logout</a>
             </div>
         </section>
 
-        <section class="profile-content">
-            <div class="profile-tabs">
-                <button class="tab active" data-tab="my-items">My items</button>
-                <button class="tab" data-tab="borrowed-items">Borrowed Items</button>
-            </div>
+        <div class="profile-tabs">
+            <button class="tab active" data-tab="my-items">My items</button>
+            <button class="tab" data-tab="borrowed-items">Borrowed Items</button>
+        </div>
 
+        <section class="profile-content">
             <div class="tab-panels">
                 <div class="tab-panel active" id="my-items">
                     <div class="items-grid">
