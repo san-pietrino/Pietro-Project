@@ -139,10 +139,10 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        .search-request-card .category-option input[type="radio"] {
+        .search-request-card .category-option input[type="checkbox"] {
             display: none;
         }
-        .search-request-card .category-option input[type="radio"]:checked + label {
+        .search-request-card .category-option input[type="checkbox"]:checked + label {
             color: #ff1493;
             font-weight: 700;
         }
@@ -233,12 +233,12 @@
                             </div>
 
                             <div class="form-group">
-                                <label>Category</label>
+                                <label>Category (select one or more)</label>
                                 <div class="categories-inline">
                                     {% set categories_list = ['Tools', 'Kitchen', 'Electronics', 'Study & Office', 'Sports & Outdoor', 'Events & Parties', 'Creative & Hobby', 'Gaming', 'Home & Living', 'Mobility', 'Baby & Child', 'Pets'] %}
                                     {% for category in categories_list %}
                                     <div class="category-option">
-                                        <input type="radio" id="cat_{{ loop.index }}" name="category" value="{{ category }}" required>
+                                        <input type="checkbox" id="cat_{{ loop.index }}" name="categories" value="{{ category }}">
                                         <label for="cat_{{ loop.index }}">{{ category }}</label>
                                     </div>
                                     {% endfor %}

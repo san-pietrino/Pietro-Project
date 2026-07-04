@@ -33,7 +33,7 @@
             <section class="pending-section">
                 <h2 class="section-title">Pending requests:</h2>
 
-                {% if requests_for_me or my_open_requests %}
+                {% if requests_for_me or my_open_requests or matching_requested_items %}
                     <div class="pending-cards-scroll">
                     {% for req in requests_for_me %}
                     <div class="pending-card">
@@ -69,9 +69,6 @@
                         </div>
                     </div>
                     {% endfor %}
-                    </div>
-                {% elif matching_requested_items %}
-                    <div class="pending-cards-scroll">
                     {% for item in matching_requested_items %}
                     <div class="pending-card">
                         <div class="pending-card-header">

@@ -460,9 +460,9 @@ def dashboard():
                 SELECT i.id, i.name, i.description, i.photo, u.username as owner
                 FROM items i
                 JOIN users u ON i.owner_id = u.id
-                WHERE i.category = ? AND i.owner_id != ? AND i.status = 'requested'
+                WHERE i.category LIKE ? AND i.owner_id != ? AND i.status = 'requested'
                 ORDER BY i.id DESC
-            ''', (category, session['user_id']))
+            ''', (f'%{category}%', session['user_id']))
             for item in cursor.fetchall():
                 if item['id'] not in seen_request_ids:
                     matching_requested_items.append(item)
@@ -739,14 +739,16 @@ def request_item():
     
     if request.method == 'POST':
         item_name = request.form.get('item_name')
-        category = request.form.get('category')
+        categories = request.form.getlist('categories')
         description = request.form.get('description', '')
         photo_file = request.files.get('photo')
 
-        if not item_name or not category:
+        if not item_name or not categories:
             return render_template('request_item.html',
                                  error='Item name and category are required',
                                  categories=categories_list)
+
+        category = ','.join(categories)
 
         photo = None
         if photo_file and photo_file.filename:
