@@ -511,7 +511,7 @@ def dashboard():
 
 @app.route('/explore')
 def explore():
-    """Explore page - browse items by category, opened from the dashboard search bar."""
+    """Explore page - browse items by category, opened from the bottom nav."""
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
@@ -574,6 +574,11 @@ def profile():
 
     cursor.execute('SELECT username, email, location, categories, photo FROM users WHERE id = ?', (session['user_id'],))
     user = cursor.fetchone()
+    if not user:
+        conn.close()
+        session.clear()
+        return redirect(url_for('login'))
+
     user_categories = [c.strip() for c in (user['categories'] or '').split(',') if c.strip()]
 
     cursor.execute("SELECT id, name, photo, category, status FROM items WHERE owner_id = ? AND status != 'requested'", (session['user_id'],))
@@ -644,6 +649,30 @@ def edit_profile():
 
 
 # ==================== ITEM SEARCH ====================
+
+@app.route('/search/suggestions')
+def search_suggestions():
+    """Live type-ahead suggestions for the search bar, as the user types."""
+    if 'user_id' not in session:
+        return jsonify([])
+
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify([])
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT DISTINCT name FROM items
+        WHERE status = 'available' AND name LIKE ?
+        ORDER BY name
+        LIMIT 8
+    ''', (f'%{query}%',))
+    suggestions = [row['name'] for row in cursor.fetchall()]
+    conn.close()
+
+    return jsonify(suggestions)
+
 
 @app.route('/search', methods=['GET', 'POST'])
 def search():

@@ -11,7 +11,7 @@
             <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
     </a>
-    <a href="{{ url_for('search') }}" class="nav-item{% if request.path.startswith('/search') %} active{% endif %}" aria-label="Search">
+    <a href="{{ url_for('explore') }}" class="nav-item{% if request.path.startswith('/explore') or request.path.startswith('/search') %} active{% endif %}" aria-label="Explore">
         <span class="icon icon-search" aria-hidden="true"></span>
     </a>
     <a href="{{ url_for('chat_index') }}" class="nav-item{% if request.path.startswith('/chat') %} active{% endif %}" aria-label="Chat">
@@ -84,5 +84,58 @@
         if (modal && event.target === modal) {
             modal.classList.remove('show');
         }
+    });
+</script>
+
+<script>
+    document.querySelectorAll('.search-form-mobile[data-live-search]').forEach(function(form) {
+        var input = form.querySelector('input[name="q"]');
+        var wrapper = form.querySelector('.search-bar-wrapper');
+        if (!input || !wrapper) return;
+
+        var box = document.createElement('div');
+        box.className = 'search-suggestions';
+        wrapper.appendChild(box);
+
+        var debounceTimer = null;
+
+        function renderSuggestions(items) {
+            box.innerHTML = '';
+            if (!items.length) {
+                box.classList.remove('show');
+                return;
+            }
+            items.forEach(function(name) {
+                var option = document.createElement('div');
+                option.className = 'search-suggestion-item';
+                option.textContent = name;
+                option.addEventListener('mousedown', function(event) {
+                    event.preventDefault();
+                    input.value = name;
+                    form.submit();
+                });
+                box.appendChild(option);
+            });
+            box.classList.add('show');
+        }
+
+        input.addEventListener('input', function() {
+            var query = input.value.trim();
+            clearTimeout(debounceTimer);
+            if (!query) {
+                box.classList.remove('show');
+                return;
+            }
+            debounceTimer = setTimeout(function() {
+                fetch('/search/suggestions?q=' + encodeURIComponent(query))
+                    .then(function(response) { return response.json(); })
+                    .then(renderSuggestions)
+                    .catch(function() { box.classList.remove('show'); });
+            }, 200);
+        });
+
+        input.addEventListener('blur', function() {
+            setTimeout(function() { box.classList.remove('show'); }, 100);
+        });
     });
 </script>

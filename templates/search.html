@@ -166,9 +166,13 @@
         <header class="dashboard-header">
             <h1 class="welcome">Search</h1>
             {{ user_avatar('avatar', current_user_photo) }}
-            <form class="search-form-mobile" action="{{ url_for('search') }}" method="GET">
-                <input type="text" name="q" value="{{ query }}" placeholder="what are you looking for?" aria-label="search">
-                <button type="submit" class="search-btn"><span class="icon icon-search" aria-hidden="true"></span><span class="sr-only">Search</span></button>
+            <form class="search-form-mobile" action="{{ url_for('search') }}" method="GET" autocomplete="off" data-live-search>
+                <div class="search-bar-wrapper">
+                    <input type="text" name="q" value="{{ query }}" placeholder="what are you looking for?" aria-label="search">
+                    <button type="submit" class="search-btn" aria-label="Search">
+                        <span class="icon icon-search" aria-hidden="true"></span>
+                    </button>
+                </div>
             </form>
 
             {% if not category %}
