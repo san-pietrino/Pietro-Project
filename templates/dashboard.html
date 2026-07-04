@@ -23,10 +23,10 @@
         <header class="dashboard-header">
             <h1 class="welcome">Welcome, {{ username }}!</h1>
             {{ user_avatar('avatar', current_user_photo) }}
-            <form class="search-form-mobile" action="{{ url_for('search') }}" method="GET">
-                <input type="text" name="q" placeholder="what are you looking for?" aria-label="search">
-                <button type="submit" class="search-btn"><span class="icon icon-search" aria-hidden="true"></span><span class="sr-only">Search</span></button>
-            </form>
+            <a class="search-form-mobile" href="{{ url_for('explore') }}" aria-label="Search">
+                <span class="search-bar-fake">what are you looking for?</span>
+                <span class="search-btn"><span class="icon icon-search" aria-hidden="true"></span><span class="sr-only">Search</span></span>
+            </a>
         </header>
 
         <main>

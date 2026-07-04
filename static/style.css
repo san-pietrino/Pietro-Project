@@ -818,7 +818,6 @@ small {
 }
 
 .profile-location {
-    display: none;
     margin: 8px 0 0;
     color: #222;
     font-family: var(--font-secondary);
@@ -826,7 +825,7 @@ small {
 }
 
 .profile-content {
-    background: white;
+    background: #c8caf2;
     border-radius: 32px 32px 0 0;
     padding: 24px 18px 120px;
     box-shadow: 0 -6px 28px rgba(0,0,0,0.1);
@@ -940,6 +939,7 @@ small {
     color: var(--text-light);
     text-align: center;
     margin: 40px 0;
+    grid-column: 1 / -1;
 }
 
 .chat-section {
@@ -1216,8 +1216,7 @@ footer {
     max-width: 60%;
 }
 .dashboard-header .avatar,
-.chat-avatar,
-.profile-avatar {
+.chat-avatar {
     width: 44px;
     height: 44px;
     border-radius: 50%;
@@ -1242,12 +1241,37 @@ footer {
     top: 0;
     color: #0a2555;
 }
+
+.profile-avatar {
+    width: 84px;
+    height: 84px;
+    min-width: 84px;
+    background-color: #ff1493;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0a2555;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+    -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='36'/><circle cx='84' cy='50' r='12'/><circle cx='80.63' cy='64.75' r='12'/><circle cx='71.2' cy='76.58' r='12'/><circle cx='57.57' cy='83.15' r='12'/><circle cx='42.43' cy='83.15' r='12'/><circle cx='28.8' cy='76.58' r='12'/><circle cx='19.37' cy='64.75' r='12'/><circle cx='16' cy='50' r='12'/><circle cx='19.37' cy='35.25' r='12'/><circle cx='28.8' cy='23.42' r='12'/><circle cx='42.43' cy='16.85' r='12'/><circle cx='57.57' cy='16.85' r='12'/><circle cx='71.2' cy='23.42' r='12'/><circle cx='80.63' cy='35.25' r='12'/></svg>");
+    mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='36'/><circle cx='84' cy='50' r='12'/><circle cx='80.63' cy='64.75' r='12'/><circle cx='71.2' cy='76.58' r='12'/><circle cx='57.57' cy='83.15' r='12'/><circle cx='42.43' cy='83.15' r='12'/><circle cx='28.8' cy='76.58' r='12'/><circle cx='19.37' cy='64.75' r='12'/><circle cx='16' cy='50' r='12'/><circle cx='19.37' cy='35.25' r='12'/><circle cx='28.8' cy='23.42' r='12'/><circle cx='42.43' cy='16.85' r='12'/><circle cx='57.57' cy='16.85' r='12'/><circle cx='71.2' cy='23.42' r='12'/><circle cx='80.63' cy='35.25' r='12'/></svg>");
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+}
+
+.profile-avatar.icon {
+    background-size: 50%;
+}
 .search-form-mobile {
     display: flex;
     gap: 8px;
     align-items: center;
+    text-decoration: none;
+    cursor: pointer;
 }
-.search-form-mobile input {
+.search-form-mobile input,
+.search-form-mobile .search-bar-fake {
     flex: 1;
     padding: 14px 18px;
     border-radius: 30px;
@@ -1256,12 +1280,61 @@ footer {
     background: white;
     box-shadow: 0 6px 18px rgba(0,0,0,0.08);
 }
+.search-form-mobile .search-bar-fake {
+    color: #767676;
+}
 .search-form-mobile .search-btn {
     background: transparent;
     border: none;
     font-size: 1.3rem;
     padding: 6px 10px;
 }
+.categories-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 26px;
+}
+.category-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    aspect-ratio: 1 / 1;
+    border-radius: 24px;
+    padding: 16px;
+    text-decoration: none;
+    box-shadow: none;
+    border: none;
+    transition: transform 0.15s ease;
+}
+.category-card:active {
+    transform: scale(0.96);
+}
+.category-card.color-green {
+    background: #cfe562;
+}
+.category-card.color-blue {
+    background: #afd8f8;
+}
+.category-card.color-pink {
+    background: #ff5ca8;
+}
+.category-card.color-orange {
+    background: #ffb25b;
+}
+.category-icon {
+    font-size: 2.4rem;
+    line-height: 1;
+}
+.category-name {
+    font-weight: 700;
+    color: #0a2555;
+    font-family: var(--font-secondary);
+    font-size: 0.95rem;
+    line-height: 1.2;
+}
+.categories-section .section-title,
 .pending-section .section-title {
     font-size: 1.1rem;
     color: #0a2555;
