@@ -1,21 +1,21 @@
 <nav class="bottom-nav">
     <a href="{{ url_for('dashboard') }}" class="nav-item{% if request.path == '/' or request.path.startswith('/dashboard') %} active{% endif %}" aria-label="Home">
-        <span class="icon icon-home" aria-hidden="true"></span>
+        <span class="icon icon-nav-home" aria-hidden="true"></span>
     </a>
     <a href="{{ url_for('profile') }}" class="nav-item{% if request.path.startswith('/profile') %} active{% endif %}" aria-label="Profile">
-        <span class="icon icon-user" aria-hidden="true"></span>
+        <span class="icon icon-nav-profile" aria-hidden="true"></span>
     </a>
     <a href="{{ url_for('add_item') }}" onclick="return openFooterAddItemModal(event)" class="nav-item center-action{% if request.path.startswith('/add-item') or request.path.startswith('/request-item') %} active{% endif %}" aria-label="Add item">
-        <svg class="plus-icon" viewBox="0 0 24 24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
+        <svg class="plus-icon" viewBox="0 0 59 61" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+            <path d="M58.0137 29.0005L0.0134028 29.1806" />
+            <path d="M29.0127 60.0723L29.0127 -1.85711e-05" />
         </svg>
     </a>
     <a href="{{ url_for('explore') }}" class="nav-item{% if request.path.startswith('/explore') or request.path.startswith('/search') %} active{% endif %}" aria-label="Explore">
-        <span class="icon icon-search" aria-hidden="true"></span>
+        <span class="icon icon-nav-search" aria-hidden="true"></span>
     </a>
     <a href="{{ url_for('chat_index') }}" class="nav-item{% if request.path.startswith('/chat') %} active{% endif %}" aria-label="Chat">
-        <span class="icon icon-chat" aria-hidden="true"></span>
+        <span class="icon icon-nav-chat" aria-hidden="true"></span>
     </a>
 </nav>
 

@@ -10,7 +10,7 @@
 <body class="chat-page">
     <div class="container">
         <header class="chat-header">
-            <a href="{{ url_for('chat_index') }}" class="chat-back">&lt;</a>
+            <a href="{{ url_for('chat_index') }}" class="chat-back" aria-label="Back"><span class="icon icon-back" aria-hidden="true"></span></a>
             <section class="chat-card-summary">
                 <div class="chat-summary-name">{{ chat_partner }}</div>
                 <p class="chat-summary-text">Looking for a {{ chat_request.item_name }}!!</p>
