@@ -33,10 +33,23 @@ EXPLORE_CATEGORIES = [
 ]
 
 
+def haversine_km(lat1, lon1, lat2, lon2):
+    """Great-circle distance in km between two coordinates, or None if either is missing."""
+    if lat1 is None or lon1 is None or lat2 is None or lon2 is None:
+        return None
+    earth_radius_km = 6371.0
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    return earth_radius_km * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
 def get_db_connection():
     """Get a database connection. Creates tables if they don't exist."""
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
+    conn.create_function('distance_km', 4, haversine_km)
     return conn
 
 
@@ -144,8 +157,13 @@ def init_db():
     ''')
 
     cursor.execute('PRAGMA table_info(users)')
-    if 'photo' not in [row[1] for row in cursor.fetchall()]:
+    user_columns = [row[1] for row in cursor.fetchall()]
+    if 'photo' not in user_columns:
         cursor.execute('ALTER TABLE users ADD COLUMN photo TEXT')
+    if 'latitude' not in user_columns:
+        cursor.execute('ALTER TABLE users ADD COLUMN latitude REAL')
+    if 'longitude' not in user_columns:
+        cursor.execute('ALTER TABLE users ADD COLUMN longitude REAL')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS items (
@@ -563,6 +581,29 @@ PROFILE_CATEGORIES = [
 ]
 
 
+@app.route('/profile/coordinates', methods=['POST'])
+def update_coordinates():
+    """Silently store the logged-in user's device coordinates, used only to sort
+    search results by distance. Never exposed to other users."""
+    if 'user_id' not in session:
+        return jsonify({'error': 'unauthorized'}), 401
+
+    data = request.get_json(silent=True) or {}
+    latitude = data.get('latitude')
+    longitude = data.get('longitude')
+    if not isinstance(latitude, (int, float)) or not isinstance(longitude, (int, float)):
+        return jsonify({'error': 'invalid coordinates'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE users SET latitude = ?, longitude = ? WHERE id = ?',
+                   (latitude, longitude, session['user_id']))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'ok': True})
+
+
 @app.route('/profile')
 def profile():
     """Show the user's profile page with owned and borrowed items."""
@@ -692,14 +733,18 @@ def search():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Get user's location for proximity sorting
-    cursor.execute('SELECT location FROM users WHERE id = ?', (session['user_id'],))
+    # Get the user's location (and, if granted, their private device coordinates) for proximity sorting.
+    # Coordinates are only ever used server-side to compute a distance for ordering - never sent to
+    # other users or exposed in any response.
+    cursor.execute('SELECT location, latitude, longitude FROM users WHERE id = ?', (session['user_id'],))
     user = cursor.fetchone()
     user_location = user['location'] if user else ''
+    user_lat = user['latitude'] if user else None
+    user_lon = user['longitude'] if user else None
 
     # Search for items (case-insensitive), optionally narrowed to a category
     conditions = ["i.status = 'available'"]
-    params = []
+    params = [user_lat, user_lon]
     if query:
         conditions.append('i.name LIKE ?')
         params.append(f'%{query}%')
@@ -709,11 +754,14 @@ def search():
     params.extend([user_location, f'%{user_location}%'])
 
     cursor.execute(f'''
-        SELECT i.*, u.username as owner, u.location as owner_location
+        SELECT i.*, u.username as owner, u.location as owner_location,
+               distance_km(?, ?, u.latitude, u.longitude) as distance
         FROM items i
         JOIN users u ON i.owner_id = u.id
         WHERE {' AND '.join(conditions)}
         ORDER BY
+            CASE WHEN distance IS NULL THEN 1 ELSE 0 END,
+            distance,
             CASE WHEN u.location = ? THEN 0
                  WHEN u.location LIKE ? THEN 1
                  ELSE 2 END
