@@ -630,7 +630,7 @@ def profile():
         FROM requests r
         JOIN items i ON r.item_id = i.id
         JOIN users u ON i.owner_id = u.id
-        WHERE r.borrower_id = ?
+        WHERE r.borrower_id = ? AND r.status = 'accepted'
         ORDER BY r.created_at DESC
     ''', (session['user_id'],))
     borrowed_items = cursor.fetchall()
@@ -961,6 +961,11 @@ def respond_request(request_id):
         cursor.execute('UPDATE requests SET status = ? WHERE id = ?', ('declined', request_id))
         # Suspend the item temporarily
         cursor.execute('UPDATE items SET status = ? WHERE id = ?', ('suspended', request_data['item_id']))
+        # Let the requester know automatically
+        cursor.execute('''
+            INSERT INTO messages (request_id, sender_id, content)
+            VALUES (?, ?, ?)
+        ''', (request_id, session['user_id'], "Sorry, I can't lend this item right now :("))
 
     conn.commit()
     conn.close()
@@ -1048,7 +1053,7 @@ def chat(request_id):
     
     # Get request details
     cursor.execute('''
-        SELECT r.*, i.name as item_name, i.photo as item_photo, i.owner_id,
+        SELECT r.*, i.name as item_name, i.photo as item_photo, i.description as item_description, i.owner_id,
                (SELECT username FROM users WHERE id = i.owner_id) as requester_name,
                (SELECT username FROM users WHERE id = r.borrower_id) as borrower_name
         FROM requests r
@@ -1058,12 +1063,13 @@ def chat(request_id):
     request_data = cursor.fetchone()
 
     # Verify access
-    if not request_data or (request_data['owner_id'] != session['user_id'] and 
+    if not request_data or (request_data['owner_id'] != session['user_id'] and
                            request_data['borrower_id'] != session['user_id']):
         conn.close()
         return "Unauthorized", 403
 
-    if request_data['owner_id'] == session['user_id']:
+    is_owner = request_data['owner_id'] == session['user_id']
+    if is_owner:
         chat_partner = request_data['borrower_name']
     else:
         chat_partner = request_data['requester_name']
@@ -1081,12 +1087,13 @@ def chat(request_id):
         messages.append(msg)
 
     conn.close()
-    
-    return render_template('chat.html', 
+
+    return render_template('chat.html',
                          chat_request=request_data,
                          chat_partner=chat_partner,
                          messages=messages,
-                         request_id=request_id)
+                         request_id=request_id,
+                         is_owner=is_owner)
 
 
 @app.route('/chat/<int:request_id>/send', methods=['POST'])
