@@ -785,17 +785,22 @@ def borrow_item(item_id):
     return redirect(url_for('dashboard'))
 
 
-@app.route('/request/<int:request_id>/respond', methods=['POST'])
+@app.route('/request/<int:request_id>/respond', methods=['GET', 'POST'])
 def respond_request(request_id):
-    """Owner responds to a borrow request (accept/decline)."""
+    """Owner responds to a borrow request (accept/decline).
+
+    The "I have one!" button on the dashboard links here as a plain GET
+    (no action specified), which means accept and jump straight into the
+    chat with the borrower.
+    """
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
-    action = request.form.get('action')  # 'accept' or 'decline'
-    
+
+    action = request.form.get('action', 'accept')  # 'accept' or 'decline'
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # Get the request and verify ownership
     cursor.execute('''
         SELECT r.*, i.owner_id
@@ -804,29 +809,61 @@ def respond_request(request_id):
         WHERE r.id = ?
     ''', (request_id,))
     request_data = cursor.fetchone()
-    
+
     if not request_data or request_data['owner_id'] != session['user_id']:
         conn.close()
         return "Unauthorized", 403
-    
+
     if action == 'accept':
         cursor.execute('UPDATE requests SET status = ? WHERE id = ?', ('accepted', request_id))
     elif action == 'decline':
         cursor.execute('UPDATE requests SET status = ? WHERE id = ?', ('declined', request_id))
         # Suspend the item temporarily
         cursor.execute('UPDATE items SET status = ? WHERE id = ?', ('suspended', request_data['item_id']))
-    
+
     conn.commit()
     conn.close()
-    
-    return redirect(url_for('dashboard'))
+
+    if action == 'decline':
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('chat', request_id=request_id))
 
 
 # ==================== CHAT ====================
 
+def format_chat_timestamp(value):
+    """Format a stored message timestamp for the chat list preview:
+    time (HH:MM) for today, weekday abbreviation for the past week, else a date."""
+    if not value:
+        return ''
+    try:
+        ts = datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+    except (TypeError, ValueError):
+        return value
+
+    today = datetime.now().date()
+    if ts.date() == today:
+        return ts.strftime('%H:%M')
+    elif (today - ts.date()).days < 7:
+        return ts.strftime('%a').lower()
+    else:
+        return ts.strftime('%d/%m/%Y')
+
+
+def format_message_time(value):
+    """Format a single message's timestamp for display inside a chat, as HH:MM."""
+    if not value:
+        return ''
+    try:
+        ts = datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+    except (TypeError, ValueError):
+        return value
+    return ts.strftime('%H:%M')
+
+
 @app.route('/chat')
 def chat_index():
-    """List the user's chat conversations."""
+    """List the user's chat conversations that have already started (i.e. have at least one message)."""
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
@@ -834,7 +871,7 @@ def chat_index():
     cursor = conn.cursor()
 
     cursor.execute('''
-        SELECT r.id, r.created_at, i.name as item_name,
+        SELECT r.id, i.name as item_name,
                (CASE WHEN i.owner_id = ? THEN u2.username ELSE u1.username END) as other_name,
                (SELECT content FROM messages m WHERE m.request_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message,
                (SELECT created_at FROM messages m WHERE m.request_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message_at
@@ -842,15 +879,19 @@ def chat_index():
         JOIN items i ON r.item_id = i.id
         JOIN users u1 ON i.owner_id = u1.id
         JOIN users u2 ON r.borrower_id = u2.id
-        WHERE i.owner_id = ? OR r.borrower_id = ?
-        ORDER BY COALESCE(
-            (SELECT created_at FROM messages m WHERE m.request_id = r.id ORDER BY m.created_at DESC LIMIT 1),
-            r.created_at
-        ) DESC
+        WHERE (i.owner_id = ? OR r.borrower_id = ?)
+          AND EXISTS (SELECT 1 FROM messages m WHERE m.request_id = r.id)
+        ORDER BY last_message_at DESC
     ''', (session['user_id'], session['user_id'], session['user_id']))
-    chats = cursor.fetchall()
+    rows = cursor.fetchall()
 
     conn.close()
+
+    chats = []
+    for row in rows:
+        chat = dict(row)
+        chat['last_message_at'] = format_chat_timestamp(row['last_message_at'])
+        chats.append(chat)
 
     return render_template('chat_list.html', chats=chats)
 
@@ -892,8 +933,12 @@ def chat(request_id):
         WHERE m.request_id = ?
         ORDER BY m.created_at ASC
     ''', (request_id,))
-    messages = cursor.fetchall()
-    
+    messages = []
+    for row in cursor.fetchall():
+        msg = dict(row)
+        msg['created_at'] = format_message_time(row['created_at'])
+        messages.append(msg)
+
     conn.close()
     
     return render_template('chat.html', 

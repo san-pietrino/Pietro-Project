@@ -1,4 +1,3 @@
-{% from 'macros.html' import user_avatar %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,51 +7,41 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename="icon - It's called Pietro.svg") }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body class="chat-page">
     <div class="container">
         <header class="chat-header">
             <a href="{{ url_for('chat_index') }}" class="chat-back">&lt;</a>
-            <h1>CHAT</h1>
-            {{ user_avatar('chat-avatar', current_user_photo) }}
-        </header>
-        
-        <main>
             <section class="chat-card-summary">
-                <div class="chat-summary-left">
-                    <div class="chat-summary-avatar icon icon-request"></div>
-                    <div>
-                        <div class="chat-summary-name">{{ chat_partner }}</div>
-                        <p class="chat-summary-text">Looking for a {{ chat_request.item_name }}.</p>
-                    </div>
-                </div>
-                {% if chat_request.item_photo %}
-                <div class="chat-summary-image-wrap">
-                    <img src="{{ url_for('static', filename='uploads/' + chat_request.item_photo) }}" alt="{{ chat_request.item_name }}">
-                </div>
-                {% endif %}
+                <div class="chat-summary-name">{{ chat_partner }}</div>
+                <p class="chat-summary-text">Looking for a {{ chat_request.item_name }}!!</p>
             </section>
+        </header>
 
+        <main>
             <div class="chat-messages">
-                    {% if messages %}
-                        {% for msg in messages %}
-                        <div class="message {% if msg.sender_id == session['user_id'] %}own{% else %}other{% endif %}">
-                            <span class="sender">{{ msg.sender_name }}</span>
+                {% if messages %}
+                    {% for msg in messages %}
+                    <div class="message {% if msg.sender_id == session['user_id'] %}own{% else %}other{% endif %}">
+                        <div class="message-body">
                             <p class="message-content">{{ msg.content }}</p>
                             <span class="timestamp">{{ msg.created_at }}</span>
                         </div>
-                        {% endfor %}
-                    {% else %}
-                        <p class="no-messages">No messages yet. Start the conversation!</p>
-                    {% endif %}
-                </div>
-                
-                <form method="POST" action="{{ url_for('send_message', request_id=request_id) }}" class="chat-form">
-                    <input type="text" name="message" placeholder="Write a message :)" required>
-                    <button type="submit" class="btn-primary">Send</button>
-                </form>
-            </section>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="no-messages">No messages yet. Start the conversation!</p>
+                {% endif %}
+            </div>
+
+            <form method="POST" action="{{ url_for('send_message', request_id=request_id) }}" class="chat-form">
+                <input type="text" name="message" placeholder="Write a message :)" required>
+                <button type="submit" class="chat-send-btn" aria-label="Send message">
+                    <svg class="chat-send-icon" viewBox="0 0 24 24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                        <polyline points="9 5 16 12 9 19" />
+                    </svg>
+                </button>
+            </form>
         </main>
-        {% include 'footer_nav.html' %}
     </div>
 </body>
 </html>

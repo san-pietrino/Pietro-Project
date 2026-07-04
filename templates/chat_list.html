@@ -8,7 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename="icon - It's called Pietro.svg") }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body class="chat-page">
     <div class="container">
         <header class="chat-header">
             <h1>CHAT</h1>
@@ -25,10 +25,10 @@
                             <div class="avatar icon icon-request"></div>
                             <div class="chat-card-text">
                                 <div class="chat-name">{{ chat.other_name }}</div>
-                                <p class="chat-snippet">{{ chat.last_message or 'No messages yet' }}</p>
+                                <p class="chat-snippet">{{ chat.last_message }}</p>
                             </div>
                         </div>
-                        <div class="chat-card-time">{{ chat.last_message_at or chat.created_at }}</div>
+                        <div class="chat-card-time">{{ chat.last_message_at }}</div>
                     </a>
                     {% endfor %}
                 </div>
