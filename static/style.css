@@ -1141,6 +1141,40 @@ small {
     color: var(--text-light);
 }
 
+.chat-respond-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.chat-respond-btn {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 20px;
+    font-weight: 800;
+    font-size: 0.9rem;
+    font-family: var(--font-secondary);
+    cursor: pointer;
+    color: white;
+}
+
+.chat-respond-btn.accept {
+    background: #ff1493;
+}
+
+.chat-respond-btn.decline {
+    background: #8a8fa3;
+}
+
+.chat-status-note {
+    text-align: center;
+    color: var(--text-light);
+    font-family: var(--font-secondary);
+    letter-spacing: normal;
+    padding: 14px;
+}
+
 /* Footer */
 footer {
     text-align: center;

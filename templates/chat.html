@@ -13,7 +13,7 @@
             <a href="{{ url_for('chat_index') }}" class="chat-back">&lt;</a>
             <section class="chat-card-summary">
                 <div class="chat-summary-name">{{ chat_partner }}</div>
-                <p class="chat-summary-text">Looking for a {{ chat_request.item_name }}!!</p>
+                <p class="chat-summary-text">{{ chat_request.item_name }}{% if chat_request.item_description %} &mdash; {{ chat_request.item_description }}{% endif %}</p>
             </section>
         </header>
 
@@ -31,8 +31,22 @@
                 {% else %}
                     <p class="no-messages">No messages yet. Start the conversation!</p>
                 {% endif %}
+
+                {% if chat_request.status == 'pending' and is_owner %}
+                <div class="chat-respond-row">
+                    <form method="POST" action="{{ url_for('respond_request', request_id=request_id) }}">
+                        <input type="hidden" name="action" value="accept">
+                        <button type="submit" class="chat-respond-btn accept">Accept</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('respond_request', request_id=request_id) }}">
+                        <input type="hidden" name="action" value="decline">
+                        <button type="submit" class="chat-respond-btn decline">Decline</button>
+                    </form>
+                </div>
+                {% endif %}
             </div>
 
+            {% if chat_request.status == 'accepted' %}
             <form method="POST" action="{{ url_for('send_message', request_id=request_id) }}" class="chat-form">
                 <input type="text" name="message" placeholder="Write a message :)" required>
                 <button type="submit" class="chat-send-btn" aria-label="Send message">
@@ -41,6 +55,13 @@
                     </svg>
                 </button>
             </form>
+            {% elif chat_request.status == 'pending' %}
+                {% if not is_owner %}
+                <p class="chat-status-note">Waiting for the owner to accept your request&hellip;</p>
+                {% endif %}
+            {% elif chat_request.status == 'declined' %}
+            <p class="chat-status-note">This request was declined.</p>
+            {% endif %}
         </main>
     </div>
 </body>
