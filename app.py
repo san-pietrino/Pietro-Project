@@ -727,7 +727,6 @@ def respond_borrow_offer(request_id):
         ''', (request_id,))
 
         if action == 'yes':
-            cursor.execute('UPDATE requests SET status = ? WHERE id = ?', ('accepted', request_id))
             # The wanted-item post has been fulfilled - stop matching it to other lenders.
             cursor.execute('UPDATE items SET status = ? WHERE id = ?', ('fulfilled', req['item_id']))
 
@@ -743,12 +742,15 @@ def respond_borrow_offer(request_id):
                   placeholder['category'], placeholder['photo']))
             new_item_id = cursor.lastrowid
 
-            # Create the real borrow request: the new item, borrower = the person
-            # who posted the wanted-item ad (me, since I own it and I'm answering).
+            # Repoint this same request (and its chat thread) at the real item and
+            # the real borrower (me, since I own the wanted-item post and I'm
+            # answering yes), instead of creating a second disconnected request -
+            # that used to leave the return flow acting on the wrong (placeholder)
+            # item, so it never actually cleared the "lent" status or let the
+            # lender delete the item afterwards.
             cursor.execute('''
-                INSERT INTO requests (item_id, borrower_id, status)
-                VALUES (?, ?, 'accepted')
-            ''', (new_item_id, session['user_id']))
+                UPDATE requests SET item_id = ?, borrower_id = ?, status = 'accepted' WHERE id = ?
+            ''', (new_item_id, session['user_id'], request_id))
             cursor.execute('''
                 INSERT INTO messages (request_id, sender_id, content, message_type)
                 VALUES (?, ?, ?, 'borrow_accepted')
@@ -885,7 +887,8 @@ def profile():
                 JOIN users u ON r.borrower_id = u.id
                 WHERE r.item_id = i.id AND r.status = 'accepted' AND r.return_status != 'returned'
                 ORDER BY r.created_at DESC LIMIT 1) as borrower_name,
-               (SELECT COUNT(*) FROM requests r WHERE r.item_id = i.id) as request_count
+               (SELECT COUNT(*) FROM requests r WHERE r.item_id = i.id
+                AND (r.status = 'pending' OR (r.status = 'accepted' AND r.return_status != 'returned'))) as request_count
         FROM items i
         WHERE i.owner_id = ? AND i.status NOT IN ('requested', 'fulfilled')
     ''', (session['user_id'],))
@@ -1601,8 +1604,9 @@ def add_item():
 
 @app.route('/item/<int:item_id>/delete', methods=['POST'])
 def delete_item(item_id):
-    """Let an owner delete one of their own items. Blocked if the item has ever
-    been requested/borrowed, so we don't orphan another user's chat or history."""
+    """Let an owner delete one of their own items. Blocked only while the item is
+    actively requested or out on loan, so we don't orphan an open chat or an
+    unresolved return - past, fully-returned/declined history doesn't count."""
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
@@ -1615,10 +1619,13 @@ def delete_item(item_id):
         conn.close()
         return "Unauthorized", 403
 
-    cursor.execute('SELECT COUNT(*) as count FROM requests WHERE item_id = ?', (item_id,))
+    cursor.execute('''
+        SELECT COUNT(*) as count FROM requests
+        WHERE item_id = ? AND (status = 'pending' OR (status = 'accepted' AND return_status != 'returned'))
+    ''', (item_id,))
     if cursor.fetchone()['count'] > 0:
         conn.close()
-        return "This item has borrow history and can't be deleted", 400
+        return "This item is currently requested or lent out and can't be deleted", 400
 
     cursor.execute('DELETE FROM items WHERE id = ?', (item_id,))
     conn.commit()
