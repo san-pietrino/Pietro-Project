@@ -1611,7 +1611,10 @@ footer {
     border-radius: 24px;
     font-weight: 800;
     font-size: 0.95rem;
+    font-family: inherit;
     text-decoration: none;
+    border: none;
+    cursor: pointer;
     box-shadow: 0 10px 22px rgba(255, 20, 147, 0.28);
 }
 .big-action-button.disabled {

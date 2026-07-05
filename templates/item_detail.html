@@ -35,7 +35,7 @@
                 <p class="item-detail-description">{{ item.description or 'No description provided.' }}</p>
 
                 <div class="item-detail-footer-row">
-                    <p class="item-detail-owner">by {{ item.owner }}<br>{{ item.owner_location }}</p>
+                    <p class="item-detail-owner">by {{ item.owner }}</p>
 
                     {% if item.owner_id == session['user_id'] %}
                     <span class="item-detail-unavailable">This is your item</span>
