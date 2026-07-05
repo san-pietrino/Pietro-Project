@@ -936,6 +936,16 @@ small {
     gap: 8px;
 }
 
+a.item-card {
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+a.item-card:active {
+    transform: scale(0.96);
+}
+
 /* Slightly increased line-height for borrowed item names to improve readability */
 .item-card.borrowed .item-name {
     line-height: 1.15;
@@ -943,6 +953,14 @@ small {
 
 .item-card.borrowed .item-image {
     box-shadow: 0 6px 14px rgba(255, 20, 147, 0.3);
+}
+
+.borrowed-reminder {
+    font-family: var(--font-secondary);
+    letter-spacing: normal;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #ff1493;
 }
 
 .item-image {
@@ -1720,7 +1738,7 @@ footer {
 .bottom-nav .nav-item .icon {
     width: 1.5rem;
     height: 1.5rem;
-    background-size: 100%;
+    background-size: contain;
 }
 .bottom-nav .nav-item:hover {
     transform: translateY(-2px);

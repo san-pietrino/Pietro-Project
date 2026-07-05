@@ -170,7 +170,7 @@
                     <div class="items-grid">
                         {% if my_items %}
                             {% for item in my_items %}
-                            <div class="item-card">
+                            <a href="{{ url_for('item_detail', item_id=item.id) }}" class="item-card">
                                 <div class="item-image">
                                     <div class="item-image-placeholder" {% if item.photo %}style="display:none;"{% endif %}></div>
                                     {% if item.photo %}
@@ -179,7 +179,7 @@
                                     {% endif %}
                                 </div>
                                 <div class="item-name">{{ item.name }}</div>
-                            </div>
+                            </a>
                             {% endfor %}
                         {% else %}
                             <p class="empty-state">No items yet</p>
@@ -201,6 +201,7 @@
                                 </div>
                                 <div class="item-name">{{ item.name }}</div>
                                 <div class="item-owner">{{ item.owner_name }}</div>
+                                <div class="borrowed-reminder">Remember to return it!</div>
                             </div>
                             {% endfor %}
                         {% else %}
