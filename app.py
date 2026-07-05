@@ -359,7 +359,14 @@ def register():
                 (username, email, hashed_password, location, categories_str, latitude, longitude)
             )
             conn.commit()
-            return redirect(url_for('login'))
+
+            # Log the new account straight in - no need to make them re-enter the
+            # password they just typed on the previous screen.
+            session.permanent = True
+            session['user_id'] = cursor.lastrowid
+            session['username'] = username
+            session['login_success'] = True
+            return redirect(url_for('dashboard'))
         except Exception as e:
             return render_template('register.html', 
                                  error=str(e),
@@ -405,8 +412,11 @@ def login():
         else:
             # Password is wrong
             return render_template('login.html', error='The password is wrong. Try again')
-    
-    return render_template('login.html')
+
+    error = None
+    if request.args.get('session_expired'):
+        error = 'Your session has expired. Please log in again.'
+    return render_template('login.html', error=error)
 
 
 @app.route('/logout')

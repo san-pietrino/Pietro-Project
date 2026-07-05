@@ -14,17 +14,6 @@
 </head>
 <body>
     {% include 'loading_screen.html' %}
-    <script>
-        // Initial app load: nothing rendered yet to show underneath, so use the
-        // fullscreen variant. Kept up for a minimum stretch so it's perceivable
-        // even though this page itself has nothing slow to actually wait for.
-        Loading.show('fullscreen');
-        var loadingShownAt = Date.now();
-        window.addEventListener('load', function() {
-            var elapsed = Date.now() - loadingShownAt;
-            setTimeout(Loading.hide, Math.max(0, 400 - elapsed));
-        });
-    </script>
     <div class="landing-page">
         <div class="landing-card">
             <h1>CIAO!</h1>

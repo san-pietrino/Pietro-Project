@@ -35,4 +35,35 @@
     window.addEventListener('pageshow', function() {
         Loading.hide();
     });
+
+    // Fresh app entry (icon tap, typed URL, bookmark - anything with no same-site
+    // referrer) gets the fullscreen variant while the page finishes loading. This
+    // covers both a logged-out visitor landing on the welcome page AND a logged-in
+    // visitor being auto-redirected straight to their dashboard, so there's no
+    // flash of one screen before the other.
+    (function() {
+        var sameSiteReferrer = false;
+        try {
+            sameSiteReferrer = document.referrer && new URL(document.referrer).origin === window.location.origin;
+        } catch (e) {}
+        if (sameSiteReferrer) return;
+
+        Loading.show('fullscreen');
+        var shownAt = Date.now();
+        window.addEventListener('load', function() {
+            var elapsed = Date.now() - shownAt;
+            setTimeout(Loading.hide, Math.max(0, 400 - elapsed));
+        });
+    })();
+
+    // Shared handling for AJAX calls to our own backend: if the session has
+    // expired or was invalidated, send the user back to login with a clear
+    // explanation instead of leaving the page stuck or silently failing.
+    window.handleAuthError = function(response) {
+        if (response.status === 401 || response.status === 403) {
+            window.location.href = '{{ url_for("login") }}?session_expired=1';
+            return true;
+        }
+        return false;
+    };
 </script>

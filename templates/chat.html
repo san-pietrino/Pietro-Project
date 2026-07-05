@@ -106,9 +106,16 @@
                 Loading.show('overlay');
                 var destination = backLink.href;
                 fetch(markReadUrl, { method: 'POST' })
+                    .then(function(response) {
+                        if (handleAuthError(response)) {
+                            destination = null;
+                        }
+                    })
                     .catch(function() {})
                     .finally(function() {
-                        window.location.href = destination;
+                        if (destination) {
+                            window.location.href = destination;
+                        }
                     });
             });
         }

@@ -456,7 +456,12 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ returned: returned })
             })
-            .then(function(response) { return response.json(); })
+            .then(function(response) {
+                if (handleAuthError(response)) {
+                    return Promise.reject(new Error('session-expired'));
+                }
+                return response.json();
+            })
             .then(function(data) {
                 Loading.hide();
                 updateReturnUI(data.return_status, data.returned_at, modalContent);
