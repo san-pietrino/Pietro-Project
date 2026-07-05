@@ -20,6 +20,17 @@
     </a>
 </nav>
 
+<script>
+    // Real page navigations from the bottom nav get an instant overlay, so the
+    // user isn't left staring at a blank tab while the next page loads. The
+    // center "+" button only opens a modal (no navigation), so it's excluded.
+    document.querySelectorAll('.bottom-nav .nav-item:not(.center-action)').forEach(function(link) {
+        link.addEventListener('click', function() {
+            Loading.show('overlay');
+        });
+    });
+</script>
+
 <div class="footer-add-item-modal" id="footerAddItemModal">
     <div class="footer-modal-content">
         <div class="footer-modal-header">

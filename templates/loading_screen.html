@@ -1,0 +1,38 @@
+<div class="loading-screen" id="loadingScreen" aria-hidden="true">
+    <div class="loading-screen-content">
+        <img src="{{ url_for('static', filename='icons/loading-wheel.svg') }}" class="loading-spinner" alt="">
+        <p class="loading-text">loading...</p>
+    </div>
+</div>
+
+<script>
+    window.Loading = {
+        show: function(variant) {
+            var el = document.getElementById('loadingScreen');
+            if (!el) return;
+            el.classList.remove('fullscreen', 'overlay');
+            el.classList.add(variant === 'fullscreen' ? 'fullscreen' : 'overlay');
+            el.classList.add('show');
+            el.setAttribute('aria-hidden', 'false');
+        },
+        hide: function() {
+            var el = document.getElementById('loadingScreen');
+            if (!el) return;
+            el.classList.remove('show');
+            el.setAttribute('aria-hidden', 'true');
+        }
+    };
+
+    // Every form submission in the app briefly shows the loading overlay - the page
+    // either navigates away (unloading it) or re-renders with a fresh, hidden one.
+    document.addEventListener('submit', function(event) {
+        if (event.target.tagName === 'FORM' && !event.target.hasAttribute('data-no-loading')) {
+            Loading.show('overlay');
+        }
+    });
+
+    // Restore from the browser's back/forward cache without a stuck overlay.
+    window.addEventListener('pageshow', function() {
+        Loading.hide();
+    });
+</script>
