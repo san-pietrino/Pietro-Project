@@ -15,9 +15,93 @@
             margin-bottom: 20px;
             border-left: 4px solid #4caf50;
         }
+        .have-one-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .have-one-modal.show {
+            display: flex;
+        }
+        .have-one-modal .modal-content {
+            position: relative;
+            background: white;
+            border-radius: 28px;
+            padding: 32px;
+            max-height: 90vh;
+            overflow-y: auto;
+            max-width: 420px;
+            width: 100%;
+        }
+        .have-one-modal h2 {
+            color: #0a2555;
+            margin: 0 0 8px;
+        }
+        .have-one-modal .have-one-subtitle {
+            color: #666;
+            font-family: var(--font-secondary);
+            letter-spacing: normal;
+            margin: 0 0 20px;
+            font-size: 0.9rem;
+        }
+        .have-one-modal .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            border: none;
+            background: transparent;
+            font-size: 1.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            color: #0a2555;
+            width: 34px;
+            height: 34px;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s ease;
+        }
+        .have-one-modal .modal-close:hover {
+            background: rgba(0, 38, 204, 0.08);
+        }
+        .have-one-modal textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-family: var(--font-secondary);
+            font-size: 0.95rem;
+            resize: vertical;
+            min-height: 90px;
+        }
+        .have-one-modal .btn-save {
+            width: 100%;
+            padding: 14px;
+            background: #0026CF;
+            color: white;
+            border: none;
+            border-radius: 28px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+        .have-one-modal .btn-save:hover {
+            background: #001a94;
+        }
     </style>
 </head>
-<body class="dashboard-page">
+<body class="dashboard-page dashboard-home">
     <div class="container dashboard-mobile">
         <header class="dashboard-header">
             <h1 class="welcome">Welcome, {{ username }}!</h1>
@@ -50,7 +134,7 @@
                             {% else %}
                             <img src="{{ url_for('static', filename='img_screwdriver.png') }}" alt="{{ req.item_name }}" class="request-image">
                             {% endif %}
-                            <a href="{{ url_for('respond_request', request_id=req.id) }}" class="big-action-button">I have one!</a>
+                            <button type="button" class="big-action-button" onclick='openHaveOneModal({{ url_for("respond_request", request_id=req.id) | tojson }}, {{ ("Hi! I have a " ~ req.item_name ~ " for you.") | tojson }})'>I have one!</button>
                         </div>
                     </div>
                     {% endfor %}
@@ -84,7 +168,7 @@
                             {% else %}
                             <img src="{{ url_for('static', filename='img_screwdriver.png') }}" alt="{{ item.name }}" class="request-image">
                             {% endif %}
-                            <a href="{{ url_for('start_chat_with_item', item_id=item.id) }}" class="big-action-button">I have one!</a>
+                            <button type="button" class="big-action-button" onclick='openHaveOneModal({{ url_for("start_chat_with_item", item_id=item.id) | tojson }}, {{ ("Hi! I have a " ~ item.name ~ " you can borrow.") | tojson }})'>I have one!</button>
                         </div>
                     </div>
                     {% endfor %}
@@ -97,6 +181,35 @@
 
         {% include 'footer_nav.html' %}
     </div>
+
+    <div class="have-one-modal" id="haveOneModal">
+        <div class="modal-content">
+            <button type="button" class="modal-close" onclick="closeHaveOneModal()" aria-label="Close">&times;</button>
+            <h2>Send a message</h2>
+            <p class="have-one-subtitle">Let them know you have it &mdash; feel free to tweak the message before sending.</p>
+            <form method="POST" id="haveOneForm">
+                <textarea name="message" id="haveOneMessageText" rows="3"></textarea>
+                <button type="submit" class="btn-save">Send</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openHaveOneModal(actionUrl, defaultMessage) {
+            document.getElementById('haveOneForm').action = actionUrl;
+            document.getElementById('haveOneMessageText').value = defaultMessage;
+            document.getElementById('haveOneModal').classList.add('show');
+        }
+        function closeHaveOneModal() {
+            document.getElementById('haveOneModal').classList.remove('show');
+        }
+        window.addEventListener('click', function(event) {
+            var modal = document.getElementById('haveOneModal');
+            if (modal && event.target === modal) {
+                closeHaveOneModal();
+            }
+        });
+    </script>
 
     <script>
         (function() {

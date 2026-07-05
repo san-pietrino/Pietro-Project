@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search - Pietro</title>
+    <title>{{ category if category else 'Search' }} - Pietro</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename="icon - It's called Pietro.svg") }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
@@ -155,7 +155,7 @@
         <header class="dashboard-header">
             <h1 class="welcome">
                 <a href="javascript:history.back()" class="item-detail-back" aria-label="Back"><span class="icon icon-back" aria-hidden="true"></span></a>
-                Search
+                {{ category if category else 'Search' }}
             </h1>
             <form class="search-form-mobile" action="{{ url_for('search') }}" method="GET" autocomplete="off" data-live-search>
                 <div class="search-bar-wrapper">
@@ -213,7 +213,7 @@
                         {% if item.description %}
                         <p>{{ item.description }}</p>
                         {% endif %}
-                        <p class="owner-line">Owner: {{ item.owner }} ({{ item.owner_location }})</p>
+                        <p class="owner-line">Owner: {{ item.owner }}</p>
                         <a href="{{ url_for('item_detail', item_id=item.id) }}" class="btn-view">View &amp; Borrow</a>
                     </div>
                     {% endfor %}

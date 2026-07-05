@@ -262,9 +262,10 @@ def inject_current_user_photo():
 
 @app.route('/')
 def index():
-    """Home page - shows the landing page with entry options."""
-    logged_in = 'user_id' in session
-    return render_template('index.html', logged_in=logged_in)
+    """Home page - shows the landing page to logged-out visitors only."""
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+    return render_template('index.html')
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -564,11 +565,17 @@ def explore():
     return render_template('explore.html', categories=EXPLORE_CATEGORIES)
 
 
-@app.route('/start-chat/<int:item_id>')
+@app.route('/start-chat/<int:item_id>', methods=['GET', 'POST'])
 def start_chat_with_item(item_id):
-    """Create or reuse a chat request for a requested item and redirect to the chat."""
+    """Create or reuse a chat request for a requested item and redirect to the chat.
+
+    The "I have one!" button on the dashboard posts here with an optional
+    customized message, which is sent to the requester as the opening chat message.
+    """
     if 'user_id' not in session:
         return redirect(url_for('login'))
+
+    message = (request.form.get('message') or '').strip()
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -592,14 +599,19 @@ def start_chat_with_item(item_id):
     existing = cursor.fetchone()
     if existing:
         request_id = existing['id']
-        conn.close()
-        return redirect(url_for('chat', request_id=request_id))
+    else:
+        cursor.execute('''
+            INSERT INTO requests (item_id, borrower_id, status)
+            VALUES (?, ?, 'pending')
+        ''', (item_id, session['user_id']))
+        request_id = cursor.lastrowid
 
-    cursor.execute('''
-        INSERT INTO requests (item_id, borrower_id, status)
-        VALUES (?, ?, 'pending')
-    ''', (item_id, session['user_id']))
-    request_id = cursor.lastrowid
+    if message:
+        cursor.execute('''
+            INSERT INTO messages (request_id, sender_id, content)
+            VALUES (?, ?, ?)
+        ''', (request_id, session['user_id'], message))
+
     conn.commit()
     conn.close()
 
@@ -1059,14 +1071,15 @@ def borrow_item(item_id):
 def respond_request(request_id):
     """Owner responds to a borrow request (accept/decline).
 
-    The "I have one!" button on the dashboard links here as a plain GET
-    (no action specified), which means accept and jump straight into the
-    chat with the borrower.
+    The "I have one!" button on the dashboard posts here with no action
+    specified, which means accept, plus an optional customized message that
+    gets sent to the borrower as the opening chat message.
     """
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
     action = request.form.get('action', 'accept')  # 'accept' or 'decline'
+    message = (request.form.get('message') or '').strip()
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -1086,6 +1099,11 @@ def respond_request(request_id):
 
     if action == 'accept':
         cursor.execute('UPDATE requests SET status = ? WHERE id = ?', ('accepted', request_id))
+        if message:
+            cursor.execute('''
+                INSERT INTO messages (request_id, sender_id, content)
+                VALUES (?, ?, ?)
+            ''', (request_id, session['user_id'], message))
     elif action == 'decline':
         cursor.execute('UPDATE requests SET status = ? WHERE id = ?', ('declined', request_id))
         # Suspend the item temporarily
