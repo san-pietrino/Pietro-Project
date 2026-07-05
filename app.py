@@ -532,16 +532,18 @@ def dashboard():
     cursor.execute('SELECT * FROM items WHERE owner_id = ?', (session['user_id'],))
     my_items = cursor.fetchall()
     
-    # Get requests for my items. Excludes requests against my own "wanted" placeholder
-    # items (status='requested') - those come from someone responding to my public
-    # "looking for X" post with "I have one!", so *they* have the item and *I* am the
-    # one who wanted it; showing them here would wrongly claim they're requesting it.
+    # Get requests for my items. Excludes accepted ones (once accepted, it's no
+    # longer "pending" so it shouldn't linger here) but keeps declined ones. Also
+    # excludes requests against my own "wanted" placeholder items (status='requested')
+    # - those come from someone responding to my public "looking for X" post with
+    # "I have one!", so *they* have the item and *I* am the one who wanted it;
+    # showing them here would wrongly claim they're requesting it.
     cursor.execute('''
         SELECT r.id, r.status, r.created_at, i.name as item_name, i.photo as item_photo, u.username as borrower
         FROM requests r
         JOIN items i ON r.item_id = i.id
         JOIN users u ON r.borrower_id = u.id
-        WHERE i.owner_id = ? AND i.status != 'requested'
+        WHERE i.owner_id = ? AND i.status != 'requested' AND r.status != 'accepted'
         ORDER BY r.created_at DESC
     ''', (session['user_id'],))
     requests_for_me = cursor.fetchall()
@@ -625,7 +627,9 @@ def start_chat_with_item(item_id):
     """Create or reuse a chat request for a requested item and redirect to the chat.
 
     The "I have one!" button on the dashboard posts here with an optional
-    customized message, which is sent to the requester as the opening chat message.
+    customized message. On top of that, the requester automatically gets an
+    system message asking "Would you like to borrow it?" with Yes/No buttons -
+    see respond_borrow_offer() for what happens next.
     """
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -636,7 +640,7 @@ def start_chat_with_item(item_id):
     cursor = conn.cursor()
 
     # Make sure the item exists and is a requested item.
-    cursor.execute('SELECT id, owner_id, status FROM items WHERE id = ?', (item_id,))
+    cursor.execute('SELECT id, name, owner_id, status FROM items WHERE id = ?', (item_id,))
     item = cursor.fetchone()
     if not item or item['status'] != 'requested':
         conn.close()
@@ -652,6 +656,7 @@ def start_chat_with_item(item_id):
         WHERE item_id = ? AND borrower_id = ?
     ''', (item_id, session['user_id']))
     existing = cursor.fetchone()
+    is_new_request = not existing
     if existing:
         request_id = existing['id']
     else:
@@ -667,9 +672,65 @@ def start_chat_with_item(item_id):
             VALUES (?, ?, ?)
         ''', (request_id, session['user_id'], message))
 
+    if is_new_request:
+        cursor.execute('''
+            INSERT INTO messages (request_id, sender_id, content, message_type)
+            VALUES (?, ?, ?, 'borrow_offer')
+        ''', (request_id, session['user_id'],
+              '{} has a {}. Would you like to borrow it?'.format(session['username'], item['name'])))
+
     conn.commit()
     conn.close()
 
+    return redirect(url_for('chat', request_id=request_id))
+
+
+@app.route('/request/<int:request_id>/respond-offer', methods=['POST'])
+def respond_borrow_offer(request_id):
+    """The requester answers Yes/No to the automatic "Would you like to borrow it?"
+    prompt sent when someone clicks "I have one!" on their public wanted-item post."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT r.*, i.owner_id, i.name as item_name
+        FROM requests r
+        JOIN items i ON r.item_id = i.id
+        WHERE r.id = ?
+    ''', (request_id,))
+    req = cursor.fetchone()
+
+    if not req or req['owner_id'] != session['user_id']:
+        conn.close()
+        return "Unauthorized", 403
+
+    if req['status'] == 'pending':
+        action = request.form.get('action')
+        cursor.execute('''
+            UPDATE messages SET resolved = 1
+            WHERE request_id = ? AND message_type = 'borrow_offer' AND resolved = 0
+        ''', (request_id,))
+
+        if action == 'yes':
+            cursor.execute('UPDATE requests SET status = ? WHERE id = ?', ('accepted', request_id))
+            # The wanted-item post has been fulfilled - stop matching it to other lenders.
+            cursor.execute('UPDATE items SET status = ? WHERE id = ?', ('fulfilled', req['item_id']))
+            cursor.execute('''
+                INSERT INTO messages (request_id, sender_id, content, message_type)
+                VALUES (?, ?, ?, 'borrow_accepted')
+            ''', (request_id, session['user_id'], "Great, it's confirmed! You can arrange the handover here."))
+        elif action == 'no':
+            cursor.execute('UPDATE requests SET status = ? WHERE id = ?', ('declined', request_id))
+            cursor.execute('''
+                INSERT INTO messages (request_id, sender_id, content, message_type)
+                VALUES (?, ?, ?, 'borrow_declined')
+            ''', (request_id, session['user_id'], "No thanks, not this time."))
+
+        conn.commit()
+
+    conn.close()
     return redirect(url_for('chat', request_id=request_id))
 
 
@@ -794,7 +855,7 @@ def profile():
                 ORDER BY r.created_at DESC LIMIT 1) as borrower_name,
                (SELECT COUNT(*) FROM requests r WHERE r.item_id = i.id) as request_count
         FROM items i
-        WHERE i.owner_id = ? AND i.status != 'requested'
+        WHERE i.owner_id = ? AND i.status NOT IN ('requested', 'fulfilled')
     ''', (session['user_id'],))
     my_items = cursor.fetchall()
 
@@ -1296,7 +1357,8 @@ def chat(request_id):
     
     # Get request details
     cursor.execute('''
-        SELECT r.*, i.name as item_name, i.photo as item_photo, i.description as item_description, i.owner_id,
+        SELECT r.*, i.name as item_name, i.photo as item_photo, i.description as item_description,
+               i.owner_id, i.status as item_status,
                (SELECT username FROM users WHERE id = i.owner_id) as requester_name,
                (SELECT username FROM users WHERE id = r.borrower_id) as borrower_name
         FROM requests r
@@ -1491,7 +1553,7 @@ def add_item():
                 WHERE r.item_id = i.id AND r.status = 'accepted' AND r.return_status != 'returned'
                 ORDER BY r.created_at DESC LIMIT 1) as borrower_name
         FROM items i
-        WHERE i.owner_id = ? AND i.status != 'requested'
+        WHERE i.owner_id = ? AND i.status NOT IN ('requested', 'fulfilled')
     ''', (session['user_id'],))
     user_items = cursor.fetchall()
     conn.close()

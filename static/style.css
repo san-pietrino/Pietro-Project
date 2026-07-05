@@ -1294,6 +1294,16 @@ small {
     color: #99044f;
 }
 
+.message.system-borrow_accepted {
+    background-color: #e6f7d9;
+    color: #2f6b1f;
+}
+
+.message.system-borrow_declined {
+    background-color: #ffe3f0;
+    color: #99044f;
+}
+
 .return-confirm-actions {
     display: flex;
     justify-content: center;
