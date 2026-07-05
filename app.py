@@ -247,9 +247,10 @@ def inject_current_user_photo():
 
 @app.route('/')
 def index():
-    """Home page - shows the landing page with entry options."""
-    logged_in = 'user_id' in session
-    return render_template('index.html', logged_in=logged_in)
+    """Home page - shows the landing page to logged-out visitors only."""
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+    return render_template('index.html')
 
 
 @app.route('/register', methods=['GET', 'POST'])

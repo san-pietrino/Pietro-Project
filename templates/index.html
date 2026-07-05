@@ -13,13 +13,8 @@
             <h1>CIAO!</h1>
             <p>This app is called Pietro*!</p>
             <div class="hero-buttons">
-                {% if logged_in %}
-                <a class="btn-primary" href="{{ url_for('dashboard') }}">Go to Dashboard</a>
-                <a class="btn-secondary" href="{{ url_for('logout') }}">Logout</a>
-                {% else %}
                 <a class="btn-primary" href="{{ url_for('login') }}">Login</a>
                 <a class="btn-secondary" href="{{ url_for('register') }}">Register</a>
-                {% endif %}
             </div>
             <div class="landing-info">
                 <p>* In Italy, when you borrow something from a friend, they’ll smirk and say: "Si chiama Pietro... e torna indietro!" ("Its name is Pietro... and it comes back!").
