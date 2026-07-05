@@ -179,20 +179,23 @@
                     <div class="items-grid">
                         {% if my_items %}
                             {% for item in my_items %}
-                            <div class="item-card" role="button" tabindex="0"
+                            <div class="item-card{% if item.borrower_name %} lent{% endif %}" role="button" tabindex="0"
                                  data-name="{{ item.name }}"
                                  data-category="{{ item.category or '' }}"
                                  data-description="{{ item.description or 'No description provided.' }}"
                                  data-photo="{% if item.photo %}{{ url_for('static', filename='uploads/' + item.photo) }}{% endif %}"
                                  data-owner=""
                                  data-owner-location=""
-                                 data-footer="This is your item"
+                                 data-footer="{% if item.borrower_name %}Currently lent to {{ item.borrower_name }}{% else %}This is your item{% endif %}"
                                  onclick="openItemPopup(this)" onkeydown="if(event.key==='Enter'){openItemPopup(this)}">
                                 <div class="item-image">
                                     <div class="item-image-placeholder" {% if item.photo %}style="display:none;"{% endif %}></div>
                                     {% if item.photo %}
                                         <img src="{{ url_for('static', filename='uploads/' + item.photo) }}" alt="{{ item.name }}"
                                              onerror="this.style.display='none'; this.parentNode.querySelector('.item-image-placeholder').style.display='block';">
+                                    {% endif %}
+                                    {% if item.borrower_name %}
+                                    <div class="item-status-overlay lent">Lent to {{ item.borrower_name }}</div>
                                     {% endif %}
                                 </div>
                                 <div class="item-name">{{ item.name }}</div>

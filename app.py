@@ -737,6 +737,7 @@ def confirm_return(request_id):
             returned_at = datetime.now().strftime('%Y-%m-%d')
             cursor.execute('UPDATE requests SET return_status = ?, returned_at = ? WHERE id = ?',
                            ('returned', returned_at, request_id))
+            cursor.execute('UPDATE items SET status = ? WHERE id = ?', ('available', req['item_id']))
             cursor.execute('''
                 INSERT INTO messages (request_id, sender_id, content, message_type)
                 VALUES (?, ?, ?, 'return_confirmed')
@@ -772,7 +773,15 @@ def profile():
 
     user_categories = [c.strip() for c in (user['categories'] or '').split(',') if c.strip()]
 
-    cursor.execute("SELECT id, name, photo, category, description, status FROM items WHERE owner_id = ? AND status != 'requested'", (session['user_id'],))
+    cursor.execute('''
+        SELECT i.id, i.name, i.photo, i.category, i.description, i.status,
+               (SELECT u.username FROM requests r
+                JOIN users u ON r.borrower_id = u.id
+                WHERE r.item_id = i.id AND r.status = 'accepted' AND r.return_status != 'returned'
+                ORDER BY r.created_at DESC LIMIT 1) as borrower_name
+        FROM items i
+        WHERE i.owner_id = ? AND i.status != 'requested'
+    ''', (session['user_id'],))
     my_items = cursor.fetchall()
 
     cursor.execute('''
@@ -1069,7 +1078,11 @@ def item_detail(item_id):
     cursor = conn.cursor()
     
     cursor.execute('''
-        SELECT i.*, u.username as owner, u.location as owner_location
+        SELECT i.*, u.username as owner, u.location as owner_location,
+               (SELECT bu.username FROM requests r
+                JOIN users bu ON r.borrower_id = bu.id
+                WHERE r.item_id = i.id AND r.status = 'accepted' AND r.return_status != 'returned'
+                ORDER BY r.created_at DESC LIMIT 1) as borrower_name
         FROM items i
         JOIN users u ON i.owner_id = u.id
         WHERE i.id = ?
@@ -1154,6 +1167,7 @@ def respond_request(request_id):
 
     if action == 'accept':
         cursor.execute('UPDATE requests SET status = ? WHERE id = ?', ('accepted', request_id))
+        cursor.execute('UPDATE items SET status = ? WHERE id = ?', ('borrowed', request_data['item_id']))
         if message:
             cursor.execute('''
                 INSERT INTO messages (request_id, sender_id, content)
@@ -1424,8 +1438,8 @@ def add_item():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Check if item with same name already exists
-        cursor.execute('SELECT category FROM items WHERE name = ?', (name,))
+        # Check if the user already has an item with this same name
+        cursor.execute('SELECT category FROM items WHERE name = ? AND owner_id = ?', (name, session['user_id']))
         existing = cursor.fetchone()
         
         if existing and not request.form.get('confirmed'):
@@ -1445,13 +1459,26 @@ def add_item():
         ''', (name, description, session['user_id'], category, photo))
         conn.commit()
         conn.close()
-        
-        return redirect(url_for('dashboard'))
-    
+
+        # Return to whichever page the "Add item" popup was opened from (e.g. the
+        # dashboard), instead of forcing a jump to the separate items grid page.
+        referrer = request.referrer
+        if referrer and referrer.startswith(request.host_url):
+            return redirect(referrer)
+        return redirect(url_for('profile'))
+
     # GET request - fetch user's items
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT id, name, photo, category FROM items WHERE owner_id = ? AND status = "available"', (session['user_id'],))
+    cursor.execute('''
+        SELECT i.id, i.name, i.photo, i.category, i.status,
+               (SELECT u.username FROM requests r
+                JOIN users u ON r.borrower_id = u.id
+                WHERE r.item_id = i.id AND r.status = 'accepted' AND r.return_status != 'returned'
+                ORDER BY r.created_at DESC LIMIT 1) as borrower_name
+        FROM items i
+        WHERE i.owner_id = ? AND i.status != 'requested'
+    ''', (session['user_id'],))
     user_items = cursor.fetchall()
     conn.close()
     

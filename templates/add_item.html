@@ -71,6 +71,16 @@
             margin-top: 8px;
             font-family: var(--font-secondary);
         }
+        .item-lent-status {
+            margin-top: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: var(--color-orange-tint);
+            color: var(--color-orange);
+            font-size: 0.75rem;
+            font-weight: 700;
+            font-family: var(--font-secondary);
+        }
         .add-item-modal {
             display: none;
             position: fixed;
@@ -222,6 +232,9 @@
                     <div class="item-image" style="background: #f5f5f5; display: flex; align-items: center; justify-content: center; color: #999;">No image</div>
                     {% endif %}
                     <div class="item-name">{{ item.name }}</div>
+                    {% if item.borrower_name %}
+                    <div class="item-lent-status">Lent to {{ item.borrower_name }}</div>
+                    {% endif %}
                 </a>
                 {% endfor %}
             </section>
