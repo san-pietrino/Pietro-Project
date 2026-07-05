@@ -89,25 +89,6 @@
             resize: vertical;
             min-height: 90px;
         }
-        .have-one-modal #haveOneItemPickerWrap {
-            margin-bottom: 12px;
-        }
-        .have-one-modal #haveOneItemPickerWrap label {
-            display: block;
-            font-weight: 600;
-            color: #0a2555;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-        }
-        .have-one-modal select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            font-family: var(--font-secondary);
-            font-size: 0.95rem;
-            background: white;
-        }
         .have-one-modal .btn-save {
             width: 100%;
             padding: 14px;
@@ -202,7 +183,7 @@
                             {% else %}
                             <img src="{{ url_for('static', filename='img_screwdriver.png') }}" alt="{{ item.name }}" class="request-image">
                             {% endif %}
-                            <button type="button" class="big-action-button" onclick='openHaveOneModal({{ url_for("start_chat_with_item", item_id=item.id) | tojson }}, {{ ("Hi! I have a " ~ item.name ~ " you can borrow.") | tojson }}, true)'>I have one!</button>
+                            <button type="button" class="big-action-button" onclick='openHaveOneModal({{ url_for("start_chat_with_item", item_id=item.id) | tojson }}, {{ ("Hi! I have a " ~ item.name ~ " you can borrow.") | tojson }})'>I have one!</button>
                         </div>
                     </div>
                     {% endfor %}
@@ -222,18 +203,6 @@
             <h2>Send a message</h2>
             <p class="have-one-subtitle">Let them know you have it &mdash; feel free to tweak the message before sending.</p>
             <form method="POST" id="haveOneForm">
-                <div id="haveOneItemPickerWrap" style="display:none;">
-                    {% if my_lendable_items %}
-                    <label for="haveOneItemPicker">Which of your items is it?</label>
-                    <select name="offered_item_id" id="haveOneItemPicker">
-                        {% for lendable in my_lendable_items %}
-                        <option value="{{ lendable.id }}">{{ lendable.name }}</option>
-                        {% endfor %}
-                    </select>
-                    {% else %}
-                    <p class="have-one-subtitle">You don't have any available items to offer yet. Add one first from the "+" button.</p>
-                    {% endif %}
-                </div>
                 <textarea name="message" id="haveOneMessageText" rows="3"></textarea>
                 <button type="submit" class="btn-save" id="haveOneSubmitBtn">Send</button>
             </form>
@@ -241,30 +210,9 @@
     </div>
 
     <script>
-        function openHaveOneModal(actionUrl, defaultMessage, needsItemPicker) {
+        function openHaveOneModal(actionUrl, defaultMessage) {
             document.getElementById('haveOneForm').action = actionUrl;
             document.getElementById('haveOneMessageText').value = defaultMessage;
-
-            var pickerWrap = document.getElementById('haveOneItemPickerWrap');
-            var picker = document.getElementById('haveOneItemPicker');
-            var submitBtn = document.getElementById('haveOneSubmitBtn');
-            if (needsItemPicker) {
-                pickerWrap.style.display = 'block';
-                if (picker) {
-                    picker.required = true;
-                    submitBtn.disabled = false;
-                } else {
-                    // No lendable items to offer - nothing to submit.
-                    submitBtn.disabled = true;
-                }
-            } else {
-                pickerWrap.style.display = 'none';
-                if (picker) {
-                    picker.required = false;
-                }
-                submitBtn.disabled = false;
-            }
-
             document.getElementById('haveOneModal').classList.add('show');
         }
         function closeHaveOneModal() {

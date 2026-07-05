@@ -604,15 +604,6 @@ def dashboard():
     ''', (session['user_id'],))
     my_requests = cursor.fetchall()
 
-    # My own items that are free to offer when replying "I have one!" to someone
-    # else's wanted-item post.
-    cursor.execute('''
-        SELECT id, name FROM items
-        WHERE owner_id = ? AND status = 'available'
-        ORDER BY name ASC
-    ''', (session['user_id'],))
-    my_lendable_items = cursor.fetchall()
-
     conn.close()
 
     return render_template('dashboard.html',
@@ -623,8 +614,7 @@ def dashboard():
                          requests_for_me=requests_for_me,
                          matching_requested_items=matching_requested_items,
                          my_open_requests=my_open_requests,
-                         my_requests=my_requests,
-                         my_lendable_items=my_lendable_items)
+                         my_requests=my_requests)
 
 
 @app.route('/explore')
@@ -638,20 +628,19 @@ def explore():
 
 @app.route('/start-chat/<int:item_id>', methods=['GET', 'POST'])
 def start_chat_with_item(item_id):
-    """Reply "I have one!" to someone else's public wanted-item post, offering one
-    of my own items, and start (or reuse) a chat about it.
+    """Reply "I have one!" to someone else's public wanted-item post, and start
+    (or reuse) a chat about it.
 
     item_id is the *wanted-item placeholder* (owned by the person who posted it).
-    The form also carries offered_item_id: the real item I'm offering to lend,
-    which must be one of my own available items. The requester automatically
+    I don't need to already have this item registered - the requester automatically
     gets a system message asking "Would you like to borrow it?" with Yes/No
-    buttons - see respond_borrow_offer() for what happens next.
+    buttons, and if they say yes, an item is created for me automatically -
+    see respond_borrow_offer() for what happens next.
     """
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
     message = (request.form.get('message') or '').strip()
-    offered_item_id = request.form.get('offered_item_id', type=int)
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -667,13 +656,6 @@ def start_chat_with_item(item_id):
         conn.close()
         return redirect(url_for('dashboard'))
 
-    # Make sure the offered item is real, mine, and actually available to lend.
-    cursor.execute('SELECT id, name, owner_id, status FROM items WHERE id = ?', (offered_item_id,))
-    offered_item = cursor.fetchone()
-    if not offered_item or offered_item['owner_id'] != session['user_id'] or offered_item['status'] != 'available':
-        conn.close()
-        return redirect(url_for('dashboard'))
-
     # If a chat request already exists for this user and wanted-item post, reuse it.
     cursor.execute('''
         SELECT id FROM requests
@@ -685,9 +667,9 @@ def start_chat_with_item(item_id):
         request_id = existing['id']
     else:
         cursor.execute('''
-            INSERT INTO requests (item_id, borrower_id, status, offered_item_id)
-            VALUES (?, ?, 'pending', ?)
-        ''', (item_id, session['user_id'], offered_item['id']))
+            INSERT INTO requests (item_id, borrower_id, status)
+            VALUES (?, ?, 'pending')
+        ''', (item_id, session['user_id']))
         request_id = cursor.lastrowid
 
     if message:
@@ -701,7 +683,7 @@ def start_chat_with_item(item_id):
             INSERT INTO messages (request_id, sender_id, content, message_type)
             VALUES (?, ?, ?, 'borrow_offer')
         ''', (request_id, session['user_id'],
-              '{} has a {}. Would you like to borrow it?'.format(session['username'], offered_item['name'])))
+              '{} has a {}. Would you like to borrow it?'.format(session['username'], item['name'])))
 
     conn.commit()
     conn.close()
@@ -714,10 +696,11 @@ def respond_borrow_offer(request_id):
     """The requester answers Yes/No to the automatic "Would you like to borrow it?"
     prompt sent when someone clicks "I have one!" on their public wanted-item post.
 
-    On "yes", this creates the actual borrow request - a separate `requests` row
-    pointing at the lender's real item, so it shows up correctly in the lender's
-    "My items" (marked as lent) and the borrower's "Borrowed items". The chat
-    itself keeps using this same request_id throughout.
+    On "yes", the lender never had to register the item beforehand: we create it
+    for them automatically (copying the wanted-item post's details) already marked
+    as lent, plus a separate `requests` row for the actual loan, so it shows up
+    correctly in the lender's "My items" (marked as lent) and the borrower's
+    "Borrowed items". The chat itself keeps using this same request_id throughout.
     """
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -747,13 +730,25 @@ def respond_borrow_offer(request_id):
             cursor.execute('UPDATE requests SET status = ? WHERE id = ?', ('accepted', request_id))
             # The wanted-item post has been fulfilled - stop matching it to other lenders.
             cursor.execute('UPDATE items SET status = ? WHERE id = ?', ('fulfilled', req['item_id']))
-            # Create the real borrow request: lender's item, borrower = the person
+
+            # The lender (req['borrower_id'] - they answered "I have one!") never
+            # registered this item themselves, so create it for them now, copying
+            # the wanted-item post's details, already marked as lent out.
+            cursor.execute('SELECT name, description, category, photo FROM items WHERE id = ?', (req['item_id'],))
+            placeholder = cursor.fetchone()
+            cursor.execute('''
+                INSERT INTO items (name, description, owner_id, category, status, photo)
+                VALUES (?, ?, ?, ?, 'borrowed', ?)
+            ''', (placeholder['name'], placeholder['description'], req['borrower_id'],
+                  placeholder['category'], placeholder['photo']))
+            new_item_id = cursor.lastrowid
+
+            # Create the real borrow request: the new item, borrower = the person
             # who posted the wanted-item ad (me, since I own it and I'm answering).
             cursor.execute('''
                 INSERT INTO requests (item_id, borrower_id, status)
                 VALUES (?, ?, 'accepted')
-            ''', (req['offered_item_id'], session['user_id']))
-            cursor.execute('UPDATE items SET status = ? WHERE id = ?', ('borrowed', req['offered_item_id']))
+            ''', (new_item_id, session['user_id']))
             cursor.execute('''
                 INSERT INTO messages (request_id, sender_id, content, message_type)
                 VALUES (?, ?, ?, 'borrow_accepted')
