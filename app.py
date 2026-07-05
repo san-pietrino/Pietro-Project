@@ -532,13 +532,16 @@ def dashboard():
     cursor.execute('SELECT * FROM items WHERE owner_id = ?', (session['user_id'],))
     my_items = cursor.fetchall()
     
-    # Get requests for my items
+    # Get requests for my items. Excludes requests against my own "wanted" placeholder
+    # items (status='requested') - those come from someone responding to my public
+    # "looking for X" post with "I have one!", so *they* have the item and *I* am the
+    # one who wanted it; showing them here would wrongly claim they're requesting it.
     cursor.execute('''
         SELECT r.id, r.status, r.created_at, i.name as item_name, i.photo as item_photo, u.username as borrower
         FROM requests r
         JOIN items i ON r.item_id = i.id
         JOIN users u ON r.borrower_id = u.id
-        WHERE i.owner_id = ?
+        WHERE i.owner_id = ? AND i.status != 'requested'
         ORDER BY r.created_at DESC
     ''', (session['user_id'],))
     requests_for_me = cursor.fetchall()
