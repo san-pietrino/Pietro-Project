@@ -1264,12 +1264,6 @@ def chat(request_id):
         msg['created_at'] = format_message_time(row['created_at'])
         messages.append(msg)
 
-    # Mark the other person's messages as read now that this user has opened the chat.
-    cursor.execute('''
-        UPDATE messages SET is_read = 1
-        WHERE request_id = ? AND sender_id != ? AND is_read = 0
-    ''', (request_id, session['user_id']))
-    conn.commit()
     conn.close()
 
     return render_template('chat.html',
@@ -1278,6 +1272,38 @@ def chat(request_id):
                          messages=messages,
                          request_id=request_id,
                          is_owner=is_owner)
+
+
+@app.route('/chat/<int:request_id>/mark-read', methods=['POST'])
+def mark_chat_read(request_id):
+    """Mark the other person's messages as read. Called from the client when the
+    user leaves the chat screen (not when it's opened), so a message is only
+    considered "read" once the user has actually finished looking at the chat."""
+    if 'user_id' not in session:
+        return '', 401
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT r.*, i.owner_id
+        FROM requests r
+        JOIN items i ON r.item_id = i.id
+        WHERE r.id = ?
+    ''', (request_id,))
+    req = cursor.fetchone()
+
+    if not req or (req['owner_id'] != session['user_id'] and req['borrower_id'] != session['user_id']):
+        conn.close()
+        return '', 403
+
+    cursor.execute('''
+        UPDATE messages SET is_read = 1
+        WHERE request_id = ? AND sender_id != ? AND is_read = 0
+    ''', (request_id, session['user_id']))
+    conn.commit()
+    conn.close()
+
+    return '', 204
 
 
 @app.route('/chat/<int:request_id>/send', methods=['POST'])
