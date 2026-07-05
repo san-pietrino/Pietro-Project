@@ -1726,31 +1726,31 @@ footer {
     transform: translateY(-2px);
 }
 .bottom-nav .nav-item.active {
-    background: #0026cf;
-    color: white;
+    background: #f5a623;
+    color: #0a2555;
 }
 .bottom-nav .nav-item.center-action {
     flex: 0 0 auto;
-    width: 68px;
-    height: 68px;
+    width: 78px;
+    height: 78px;
     border-radius: 50%;
-    background: #ff1493;
-    color: white;
-    box-shadow: 0 8px 20px rgba(255, 20, 147, 0.4);
+    background: white;
+    color: #0a2555;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.14);
 }
 .bottom-nav .nav-item.center-action:hover {
     transform: translateY(-2px);
 }
 .bottom-nav .nav-item.center-action .plus-icon {
-    width: 28px;
-    height: 28px;
-    stroke: white;
+    width: 30px;
+    height: 30px;
+    stroke: #0a2555;
     stroke-width: 3;
     stroke-linecap: round;
     fill: none;
 }
 .bottom-nav .nav-item.center-action.active {
-    background: #ff1493;
+    background: #f5a623;
 }
 
 .footer-add-item-modal {
@@ -1901,8 +1901,8 @@ footer {
         height: 48px;
     }
     .bottom-nav .nav-item.center-action {
-        width: 62px;
-        height: 62px;
+        width: 70px;
+        height: 70px;
     }
 }
 
