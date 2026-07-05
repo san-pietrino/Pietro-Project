@@ -1046,7 +1046,12 @@ def search():
     if not items:
         if query:
             # Item doesn't exist, show message to user about requesting it
-            cursor.execute("SELECT * FROM items WHERE status = 'requested'")
+            cursor.execute('''
+                SELECT i.*, u.username as owner
+                FROM items i
+                JOIN users u ON i.owner_id = u.id
+                WHERE i.status = 'requested'
+            ''')
             candidates = cursor.fetchall()
             scored = [(item_relevance(query, item['name']), item) for item in candidates]
             scored = [s for s in scored if s[0] >= FUZZY_MATCH_THRESHOLD]
@@ -1586,6 +1591,11 @@ def delete_item(item_id):
     conn.commit()
     conn.close()
 
+    # Back to wherever this was deleted from (e.g. the dashboard's pending
+    # requests, or the profile grid), instead of always jumping to profile.
+    referrer = request.referrer
+    if referrer and referrer.startswith(request.host_url):
+        return redirect(referrer)
     return redirect(url_for('profile'))
 
 

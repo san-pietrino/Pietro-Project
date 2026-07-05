@@ -204,7 +204,7 @@
                             {% if item.description %}
                             <p>{{ item.description }}</p>
                             {% endif %}
-                            <p class="owner-line">Requested by someone</p>
+                            <p class="owner-line">{% if item.owner_id == session['user_id'] %}Requested by you{% else %}Requested by {{ item.owner }}{% endif %}</p>
                         </div>
                         {% endfor %}
                     </div>

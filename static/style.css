@@ -816,6 +816,25 @@ small {
     color: var(--color-pink-dark);
 }
 
+.pending-delete-request-btn {
+    display: inline-block;
+    margin-top: 10px;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--color-pink);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.pending-delete-request-btn:hover {
+    color: var(--color-pink-dark);
+}
+
 .profile-user-row {
     display: flex;
     align-items: center;
@@ -1817,6 +1836,21 @@ footer {
     box-shadow: none;
     cursor: default;
     pointer-events: none;
+}
+.request-action-stack {
+    position: absolute;
+    right: 14px;
+    bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+.request-action-stack .big-action-button {
+    position: static;
+}
+.request-action-stack .pending-delete-request-btn {
+    margin-top: 0;
 }
 .item-detail-backdrop {
     filter: blur(3px);
