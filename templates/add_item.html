@@ -129,8 +129,7 @@
             letter-spacing: 0.05em;
         }
         .form-group input[type="text"],
-        .form-group textarea,
-        .form-group input[type="file"] {
+        .form-group textarea {
             width: 100%;
             padding: 12px;
             border: 2px solid #e0e0e0;
@@ -150,9 +149,10 @@
         }
         .category-chip {
             padding: 10px;
-            border: 2px solid #e0e0e0;
+            border: none;
             border-radius: 20px;
             background: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
             cursor: pointer;
             text-align: center;
             transition: all 0.3s ease;
@@ -162,10 +162,10 @@
         .category-chip input {
             display: none;
         }
-        .category-chip input:checked + label {
-            background: #0033cc;
+        .category-chip:has(input:checked) {
+            background: var(--color-pink);
             color: white;
-            border-color: #0033cc;
+            box-shadow: none;
         }
         .category-chip label {
             cursor: pointer;
@@ -282,7 +282,12 @@
                 
                 <div class="form-group">
                     <label for="photo">Photo</label>
-                    <input type="file" id="photo" name="photo" accept="image/*">
+                    <div class="photo-upload">
+                        <input type="file" id="photo" name="photo" accept="image/*" class="photo-upload-input"
+                               onchange="document.getElementById('photo-filename').textContent = this.files[0] ? this.files[0].name : '';">
+                        <label for="photo" class="photo-upload-btn">Add a photo</label>
+                        <span class="photo-upload-filename" id="photo-filename"></span>
+                    </div>
                 </div>
                 
                 {% if suggested_category %}

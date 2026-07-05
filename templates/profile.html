@@ -292,7 +292,8 @@
                             <span class="icon icon-user" id="avatarPreviewIcon"></span>
                             {% endif %}
                         </div>
-                        <input type="file" id="edit-photo" name="photo" accept="image/*" onchange="previewAvatarPhoto(this)">
+                        <input type="file" id="edit-photo" name="photo" accept="image/*" class="photo-upload-input" onchange="previewAvatarPhoto(this)">
+                        <label for="edit-photo" class="photo-upload-btn">Change photo</label>
                     </div>
                 </div>
                 <div class="form-group">

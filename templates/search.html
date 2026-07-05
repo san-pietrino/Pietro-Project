@@ -253,7 +253,12 @@
 
                             <div class="form-group">
                                 <label for="photo">Photo</label>
-                                <input type="file" id="photo" name="photo" accept="image/*">
+                                <div class="photo-upload">
+                                    <input type="file" id="photo" name="photo" accept="image/*" class="photo-upload-input"
+                                           onchange="document.getElementById('photo-filename').textContent = this.files[0] ? this.files[0].name : '';">
+                                    <label for="photo" class="photo-upload-btn">Add a photo</label>
+                                    <span class="photo-upload-filename" id="photo-filename"></span>
+                                </div>
                             </div>
 
                             <button type="submit" class="btn-view">Submit Request</button>
