@@ -59,7 +59,7 @@
                     <p class="no-messages">No messages yet. Start the conversation!</p>
                 {% endif %}
 
-                {% if chat_request.status == 'pending' and is_owner %}
+                {% if chat_request.status == 'pending' and is_owner and chat_request.request_type != 'match' %}
                 <div class="chat-respond-row">
                     <form method="POST" action="{{ url_for('respond_request', request_id=request_id) }}">
                         <input type="hidden" name="action" value="accept">
@@ -73,7 +73,7 @@
                 {% endif %}
             </div>
 
-            {% if chat_request.status == 'accepted' %}
+            {% if chat_request.status == 'accepted' or chat_request.request_type == 'match' %}
             <form method="POST" action="{{ url_for('send_message', request_id=request_id) }}" class="chat-form">
                 <input type="text" name="message" placeholder="Write a message :)" required>
                 <button type="submit" class="chat-send-btn" aria-label="Send message">

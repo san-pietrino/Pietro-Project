@@ -215,6 +215,11 @@ def init_db():
     if 'return_status' not in request_columns:
         cursor.execute("ALTER TABLE requests ADD COLUMN return_status TEXT DEFAULT 'not_returned'")
         cursor.execute("UPDATE requests SET return_status = 'returned' WHERE returned_at IS NOT NULL")
+    if 'request_type' not in request_columns:
+        # 'borrow' = direct "Request"/"I have one!" on an existing item, which needs
+        # the lender's Accept/Decline. 'match' = "I have one!" on someone else's public
+        # "looking for X" post - the two are just introduced to each other, nothing to approve.
+        cursor.execute("ALTER TABLE requests ADD COLUMN request_type TEXT DEFAULT 'borrow'")
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS messages (
@@ -633,7 +638,7 @@ def start_chat_with_item(item_id):
     cursor = conn.cursor()
 
     # Make sure the item exists and is a requested item.
-    cursor.execute('SELECT id, owner_id, status FROM items WHERE id = ?', (item_id,))
+    cursor.execute('SELECT id, name, owner_id, status FROM items WHERE id = ?', (item_id,))
     item = cursor.fetchone()
     if not item or item['status'] != 'requested':
         conn.close()
@@ -652,11 +657,21 @@ def start_chat_with_item(item_id):
     if existing:
         request_id = existing['id']
     else:
+        # 'match' requests just introduce two people to each other - there's no
+        # approval step, so no Accept/Decline should ever show for this chat.
         cursor.execute('''
-            INSERT INTO requests (item_id, borrower_id, status)
-            VALUES (?, ?, 'pending')
+            INSERT INTO requests (item_id, borrower_id, status, request_type)
+            VALUES (?, ?, 'pending', 'match')
         ''', (item_id, session['user_id']))
         request_id = cursor.lastrowid
+
+        # Automatic, button-free notification to the original requester letting
+        # them know someone has what they're looking for.
+        cursor.execute('''
+            INSERT INTO messages (request_id, sender_id, content, message_type)
+            VALUES (?, ?, ?, 'item_match')
+        ''', (request_id, session['user_id'],
+              "{} has the item you're looking for: '{}'!".format(session['username'], item['name'])))
 
     if message:
         cursor.execute('''
@@ -982,7 +997,12 @@ def search():
     if not items:
         if query:
             # Item doesn't exist, show message to user about requesting it
-            cursor.execute("SELECT * FROM items WHERE status = 'requested'")
+            cursor.execute('''
+                SELECT i.*, u.username as owner
+                FROM items i
+                JOIN users u ON i.owner_id = u.id
+                WHERE i.status = 'requested'
+            ''')
             candidates = cursor.fetchall()
             scored = [(item_relevance(query, item['name']), item) for item in candidates]
             scored = [s for s in scored if s[0] >= FUZZY_MATCH_THRESHOLD]
@@ -1521,6 +1541,11 @@ def delete_item(item_id):
     conn.commit()
     conn.close()
 
+    # Back to wherever this was deleted from (e.g. the dashboard's pending
+    # requests, or the profile grid), instead of always jumping to profile.
+    referrer = request.referrer
+    if referrer and referrer.startswith(request.host_url):
+        return redirect(referrer)
     return redirect(url_for('profile'))
 
 

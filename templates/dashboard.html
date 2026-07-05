@@ -157,7 +157,12 @@
                             {% else %}
                             <img src="{{ url_for('static', filename='img_screwdriver.png') }}" alt="{{ item.name }}" class="request-image">
                             {% endif %}
-                            <span class="big-action-button disabled">Waiting for a match</span>
+                            <div class="request-action-stack">
+                                <span class="big-action-button disabled">Waiting for a match</span>
+                                <form method="POST" action="{{ url_for('delete_item', item_id=item.id) }}" onsubmit="return confirm('Delete this request?')">
+                                    <button type="submit" class="pending-delete-request-btn">delete request</button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                     {% endfor %}
@@ -165,7 +170,7 @@
                     <div class="pending-card">
                         <div class="pending-card-header">
                             <div class="requester-avatar icon icon-user"></div>
-                            <div class="requester-name">Requested by someone</div>
+                            <div class="requester-name">Requested by {{ item.owner }}</div>
                         </div>
                         <p class="request-desc">Looking for a {{ item.name }}.</p>
                         <div class="request-image-card">
