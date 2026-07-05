@@ -106,41 +106,104 @@
             margin-bottom: 0;
         }
         .search-request-card {
-            background: white;
-            border-radius: 24px;
-            padding: 20px;
             margin-top: 4px;
         }
-        .search-request-card h3 {
-            color: #0a2555;
-            margin-bottom: 8px;
+        .btn-request-toggle {
+            display: block;
+            width: 100%;
+            padding: 14px 18px;
+            background: #ff1493;
+            color: white;
+            border: none;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            font-family: var(--font-secondary);
+            cursor: pointer;
+            text-align: center;
         }
-        .search-request-card p {
+        .request-item-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .request-item-modal.show {
+            display: flex;
+        }
+        .request-item-modal .modal-content {
+            position: relative;
+            background: white;
+            border-radius: 28px;
+            padding: 32px;
+            max-height: 90vh;
+            overflow-y: auto;
+            max-width: 420px;
+            width: 100%;
+        }
+        .request-item-modal h3 {
+            color: #0a2555;
+            margin: 0 0 8px;
+        }
+        .request-item-modal .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            border: none;
+            background: transparent;
+            font-size: 1.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            color: #0a2555;
+            width: 34px;
+            height: 34px;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s ease;
+        }
+        .request-item-modal .modal-close:hover {
+            background: rgba(0, 38, 204, 0.08);
+        }
+        .request-item-modal p {
             color: #333333;
             font-family: var(--font-secondary);
             letter-spacing: normal;
             margin-bottom: 16px;
         }
-        .search-request-card .categories-inline {
+        .request-item-modal .categories-inline {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
         }
-        .search-request-card .category-option {
+        .request-item-modal .category-option {
             padding: 8px 14px;
             border: 2px solid #e0e0e0;
             border-radius: 16px;
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        .search-request-card .category-option input[type="checkbox"] {
+        .request-item-modal .category-option input[type="checkbox"] {
             display: none;
         }
-        .search-request-card .category-option input[type="checkbox"]:checked + label {
-            color: #ff1493;
+        .request-item-modal .category-option:has(input[type="checkbox"]:checked) {
+            background: #ff1493;
+            border-color: #ff1493;
+        }
+        .request-item-modal .category-option:has(input[type="checkbox"]:checked) label {
+            color: white;
             font-weight: 700;
         }
-        .search-request-card .category-option label {
+        .request-item-modal .category-option label {
             cursor: pointer;
             margin: 0;
             font-family: var(--font-secondary);
@@ -171,14 +234,6 @@
                     </button>
                 </div>
             </form>
-
-            {% if not category %}
-            <nav class="categories-nav">
-                {% for cat in categories %}
-                <a href="{{ url_for('search', category=cat) }}" class="category-chip {% if category == cat %}active{% endif %}"> {{ cat }} </a>
-                {% endfor %}
-            </nav>
-            {% endif %}
         </header>
 
             <!-- categories bar removed to avoid duplicate category links -->
@@ -223,46 +278,56 @@
                         <a href="{{ url_for('item_detail', item_id=item.id) }}" class="btn-view">View &amp; Borrow</a>
                     </div>
                     {% endfor %}
-                    {% elif show_request_form %}
+                    {% endif %}
+                    {% if show_request_form %}
                     <div class="search-request-card">
-                        <h3>Didn't find what you need?</h3>
-                        <p>Submit a request and users interested in this category will be notified!</p>
-                        <form method="POST" action="{{ url_for('request_item') }}" enctype="multipart/form-data">
-                            <div class="form-group">
-                                <label for="item_name">Item Name</label>
-                                <input type="text" id="item_name" name="item_name" required placeholder="{{ query }}">
-                            </div>
+                        <button type="button" class="btn-request-toggle" onclick="openRequestModal()">
+                            {% if items %}Not the item you were looking for? Request it!{% else %}Didn't find what you need? Request it!{% endif %}
+                        </button>
+                    </div>
 
-                            <div class="form-group">
-                                <label>Category (select one or more)</label>
-                                <div class="categories-inline">
-                                    {% set categories_list = ['Tools', 'Kitchen', 'Electronics', 'Study & Office', 'Sports & Outdoor', 'Events & Parties', 'Creative & Hobby', 'Gaming', 'Home & Living', 'Mobility', 'Baby & Child', 'Pets'] %}
-                                    {% for category in categories_list %}
-                                    <div class="category-option">
-                                        <input type="checkbox" id="cat_{{ loop.index }}" name="categories" value="{{ category }}">
-                                        <label for="cat_{{ loop.index }}">{{ category }}</label>
+                    <div class="request-item-modal" id="requestItemModal">
+                        <div class="modal-content">
+                            <button type="button" class="modal-close" onclick="closeRequestModal()" aria-label="Close">&times;</button>
+                            <h3>Request an item</h3>
+                            <p>Submit a request and users interested in this category will be notified!</p>
+                            <form method="POST" action="{{ url_for('request_item') }}" enctype="multipart/form-data">
+                                <div class="form-group">
+                                    <label for="item_name">Item Name</label>
+                                    <input type="text" id="item_name" name="item_name" required placeholder="{{ query }}">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Category (select one or more)</label>
+                                    <div class="categories-inline">
+                                        {% set categories_list = ['Tools', 'Kitchen', 'Electronics', 'Study & Office', 'Sports & Outdoor', 'Events & Parties', 'Creative & Hobby', 'Gaming', 'Home & Living', 'Mobility', 'Baby & Child', 'Pets'] %}
+                                        {% for category in categories_list %}
+                                        <div class="category-option">
+                                            <input type="checkbox" id="cat_{{ loop.index }}" name="categories" value="{{ category }}">
+                                            <label for="cat_{{ loop.index }}">{{ category }}</label>
+                                        </div>
+                                        {% endfor %}
                                     </div>
-                                    {% endfor %}
                                 </div>
-                            </div>
 
-                            <div class="form-group">
-                                <label for="description">Description</label>
-                                <textarea id="description" name="description" rows="3" placeholder="Describe what you're looking for..."></textarea>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="photo">Photo</label>
-                                <div class="photo-upload">
-                                    <input type="file" id="photo" name="photo" accept="image/*" class="photo-upload-input"
-                                           onchange="document.getElementById('photo-filename').textContent = this.files[0] ? this.files[0].name : '';">
-                                    <label for="photo" class="photo-upload-btn">Add a photo</label>
-                                    <span class="photo-upload-filename" id="photo-filename"></span>
+                                <div class="form-group">
+                                    <label for="description">Description</label>
+                                    <textarea id="description" name="description" rows="3" placeholder="Describe what you're looking for..."></textarea>
                                 </div>
-                            </div>
 
-                            <button type="submit" class="btn-view">Submit Request</button>
-                        </form>
+                                <div class="form-group">
+                                    <label for="photo">Photo</label>
+                                    <div class="photo-upload">
+                                        <input type="file" id="photo" name="photo" accept="image/*" class="photo-upload-input"
+                                               onchange="document.getElementById('photo-filename').textContent = this.files[0] ? this.files[0].name : '';">
+                                        <label for="photo" class="photo-upload-btn">Add a photo</label>
+                                        <span class="photo-upload-filename" id="photo-filename"></span>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn-view">Submit Request</button>
+                            </form>
+                        </div>
                     </div>
                     {% endif %}
                 {% else %}
@@ -272,5 +337,20 @@
         </main>
         {% include 'footer_nav.html' %}
     </div>
+
+    <script>
+        function openRequestModal() {
+            document.getElementById('requestItemModal').classList.add('show');
+        }
+        function closeRequestModal() {
+            document.getElementById('requestItemModal').classList.remove('show');
+        }
+        window.addEventListener('click', function(event) {
+            var modal = document.getElementById('requestItemModal');
+            if (modal && event.target === modal) {
+                closeRequestModal();
+            }
+        });
+    </script>
 </body>
 </html>

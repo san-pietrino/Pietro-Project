@@ -1048,10 +1048,13 @@ small {
 }
 
 .item-image-placeholder {
-    width: 36px;
-    height: 36px;
-    background: #e9efff;
-    border-radius: 18px;
+    width: 45%;
+    aspect-ratio: 426 / 306;
+    background-image: url("icon-no-image.svg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    opacity: 0.35;
 }
 
 .item-name {
@@ -1775,6 +1778,10 @@ footer {
     max-height: 300px;
     width: auto;
     height: auto;
+}
+.request-image.no-image-icon {
+    max-width: 35%;
+    opacity: 0.35;
 }
 
 /* Dashboard home: stretch the pending cards down to 40px above the bottom nav */

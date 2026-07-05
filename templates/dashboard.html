@@ -142,7 +142,7 @@
                             {% if req.item_photo %}
                             <img src="{{ url_for('static', filename='uploads/' + req.item_photo) }}" alt="{{ req.item_name }}" class="request-image">
                             {% else %}
-                            <img src="{{ url_for('static', filename='img_screwdriver.png') }}" alt="{{ req.item_name }}" class="request-image">
+                            <img src="{{ url_for('static', filename='icon-no-image.svg') }}" alt="No photo" class="request-image no-image-icon">
                             {% endif %}
                             <button type="button" class="big-action-button" onclick='openHaveOneModal({{ url_for("respond_request", request_id=req.id) | tojson }}, {{ ("Hi! I have a " ~ req.item_name ~ " for you.") | tojson }})'>I have one!</button>
                         </div>
@@ -159,7 +159,7 @@
                             {% if item.photo %}
                             <img src="{{ url_for('static', filename='uploads/' + item.photo) }}" alt="{{ item.name }}" class="request-image">
                             {% else %}
-                            <img src="{{ url_for('static', filename='img_screwdriver.png') }}" alt="{{ item.name }}" class="request-image">
+                            <img src="{{ url_for('static', filename='icon-no-image.svg') }}" alt="No photo" class="request-image no-image-icon">
                             {% endif %}
                             <div class="request-action-stack">
                                 <span class="big-action-button disabled">Waiting for a match</span>
@@ -181,7 +181,7 @@
                             {% if item.photo %}
                             <img src="{{ url_for('static', filename='uploads/' + item.photo) }}" alt="{{ item.name }}" class="request-image">
                             {% else %}
-                            <img src="{{ url_for('static', filename='img_screwdriver.png') }}" alt="{{ item.name }}" class="request-image">
+                            <img src="{{ url_for('static', filename='icon-no-image.svg') }}" alt="No photo" class="request-image no-image-icon">
                             {% endif %}
                             <button type="button" class="big-action-button" onclick='openHaveOneModal({{ url_for("start_chat_with_item", item_id=item.id) | tojson }}, {{ ("Hi! I have a " ~ item.name ~ " you can borrow.") | tojson }})'>I have one!</button>
                         </div>

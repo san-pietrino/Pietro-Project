@@ -1112,7 +1112,8 @@ def search():
                                  categories=categories)
 
     conn.close()
-    return render_template('search.html', items=items, query=query, category=category, categories=categories)
+    return render_template('search.html', items=items, query=query, category=category,
+                         show_request_form=bool(query), categories=categories)
 
 
 @app.route('/request-item', methods=['GET', 'POST'])
