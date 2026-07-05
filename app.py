@@ -7,8 +7,10 @@ import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
+from rapidfuzz import fuzz
 import math
 import os
+import re
 
 app = Flask(__name__)
 app.secret_key = 'pietro-secret-key-change-in-production'  # → see DECISIONS.md #2
@@ -844,6 +846,33 @@ def edit_profile():
 
 # ==================== ITEM SEARCH ====================
 
+# Below this, a normalized+fuzzy match is considered "close enough" to show.
+# Mirrors a Fuse.js threshold of roughly 0.3-0.4 (lower = stricter there),
+# just on rapidfuzz's 0-100 similarity scale instead (higher = stricter here).
+FUZZY_MATCH_THRESHOLD = 70
+
+
+def normalize_text(value):
+    """Lowercase and drop spaces/hyphens/underscores, so 'Hair Dryer', 'hair-dryer'
+    and 'hairdryer' all normalize to the same string and compare equal."""
+    return re.sub(r'[\s\-_]+', '', (value or '').lower())
+
+
+def item_relevance(query, name):
+    """0-110 relevance score for ranking search results against a free-typed query.
+    Normalized exact/substring matches rank above everything else; anything short
+    of that falls back to a fuzzy ratio so small typos still surface a result."""
+    query_norm = normalize_text(query)
+    name_norm = normalize_text(name)
+    if not query_norm or not name_norm:
+        return 0
+    if query_norm == name_norm:
+        return 110
+    if query_norm in name_norm:
+        return 100
+    return fuzz.WRatio(query_norm, name_norm)
+
+
 @app.route('/search/suggestions')
 def search_suggestions():
     """Live type-ahead suggestions for the search bar, as the user types."""
@@ -856,14 +885,14 @@ def search_suggestions():
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('''
-        SELECT DISTINCT name FROM items
-        WHERE status = 'available' AND name LIKE ?
-        ORDER BY name
-        LIMIT 8
-    ''', (f'%{query}%',))
-    suggestions = [row['name'] for row in cursor.fetchall()]
+    cursor.execute("SELECT DISTINCT name FROM items WHERE status = 'available'")
+    names = [row['name'] for row in cursor.fetchall()]
     conn.close()
+
+    scored = [(item_relevance(query, name), name) for name in names]
+    scored = [s for s in scored if s[0] >= FUZZY_MATCH_THRESHOLD]
+    scored.sort(key=lambda s: -s[0])
+    suggestions = [name for score, name in scored[:8]]
 
     return jsonify(suggestions)
 
@@ -895,13 +924,12 @@ def search():
     user_lat = user['latitude'] if user else None
     user_lon = user['longitude'] if user else None
 
-    # Search for items (case-insensitive), optionally narrowed to a category.
+    # Search for items, optionally narrowed to a category. The name match itself
+    # (normalized + fuzzy, tolerant to spacing/case/typos) happens below in Python,
+    # since that kind of comparison isn't expressible as a plain SQL LIKE.
     # Never show the viewer their own items - you can't borrow what you already have.
     conditions = ["i.status = 'available'", "i.owner_id != ?"]
     params = [user_lat, user_lon, session['user_id']]
-    if query:
-        conditions.append('i.name LIKE ?')
-        params.append(f'%{query}%')
     if category:
         conditions.append('i.category = ?')
         params.append(category)
@@ -923,13 +951,23 @@ def search():
 
     items = cursor.fetchall()
 
+    if query:
+        # Relevance first; Python's sort is stable, so items tied on relevance
+        # keep the distance/location order the SQL query already put them in.
+        scored = [(item_relevance(query, item['name']), item) for item in items]
+        scored = [s for s in scored if s[0] >= FUZZY_MATCH_THRESHOLD]
+        scored.sort(key=lambda s: -s[0])
+        items = [item for score, item in scored]
+
     if not items:
         if query:
             # Item doesn't exist, show message to user about requesting it
-            cursor.execute('''
-                SELECT * FROM items WHERE name LIKE ? AND status = 'requested'
-            ''', (f'%{query}%',))
-            requested_items = cursor.fetchall()
+            cursor.execute("SELECT * FROM items WHERE status = 'requested'")
+            candidates = cursor.fetchall()
+            scored = [(item_relevance(query, item['name']), item) for item in candidates]
+            scored = [s for s in scored if s[0] >= FUZZY_MATCH_THRESHOLD]
+            scored.sort(key=lambda s: -s[0])
+            requested_items = [item for score, item in scored]
         else:
             requested_items = []
 

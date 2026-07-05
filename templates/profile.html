@@ -40,7 +40,7 @@
             width: 100%;
         }
         .edit-profile-modal h2 {
-            color: #0a2555;
+            color: var(--color-blue);
             margin: 0 0 20px;
         }
         .edit-profile-modal .modal-close {
@@ -52,7 +52,7 @@
             font-size: 1.8rem;
             font-weight: bold;
             cursor: pointer;
-            color: #0a2555;
+            color: var(--color-blue);
             width: 34px;
             height: 34px;
             line-height: 1;
@@ -63,7 +63,7 @@
             transition: background 0.2s ease;
         }
         .edit-profile-modal .modal-close:hover {
-            background: rgba(0, 38, 204, 0.08);
+            background: rgba(13, 33, 164, 0.08);
         }
         .edit-profile-modal .form-group {
             margin-bottom: 16px;
@@ -71,7 +71,7 @@
         .edit-profile-modal label {
             display: block;
             font-weight: 600;
-            color: #0a2555;
+            color: var(--color-blue);
             margin-bottom: 8px;
             font-size: 0.95rem;
         }
@@ -81,7 +81,7 @@
             padding: 12px;
             border: 2px solid #e0e0e0;
             border-radius: 12px;
-            font-family: var(--font-secondary);
+            font-family: var(--font-body);
             font-size: 0.95rem;
         }
         .avatar-upload-row {
@@ -94,8 +94,8 @@
             height: 64px;
             min-width: 64px;
             border-radius: 50%;
-            background-color: #ff1493;
-            color: #0a2555;
+            background-color: var(--color-pink);
+            color: var(--color-blue);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -111,9 +111,11 @@
             padding: 10px;
             border: 2px solid #e0e0e0;
             border-radius: 20px;
-            background: white;
+            background: var(--color-white);
+            color: var(--text-light);
             cursor: pointer;
             text-align: center;
+            font-family: var(--font-body);
             font-size: 0.9rem;
             font-weight: 500;
             transition: all 0.2s ease;
@@ -125,28 +127,30 @@
             color: inherit;
         }
         .edit-profile-modal .category-chip:has(input:checked) {
-            background: #ff1493;
-            border-color: #ff1493;
-            color: white;
+            background: var(--color-blue);
+            border-color: var(--color-blue);
+            color: var(--color-white);
         }
         .edit-profile-modal .btn-save {
             width: 100%;
             padding: 14px;
-            background: #0026CF;
-            color: white;
+            background: var(--color-blue);
+            color: var(--color-white);
             border: none;
             border-radius: 28px;
+            font-family: var(--font-body);
             font-weight: 700;
             font-size: 1rem;
             cursor: pointer;
             margin-top: 20px;
         }
         .edit-profile-modal .btn-save:hover {
-            background: #001a94;
+            background: var(--color-blue-dark);
         }
     </style>
 </head>
 <body class="no-scroll-page">
+    {% include 'loading_screen.html' %}
     <div class="container profile-page">
         <header class="profile-header">
             <h1>my profile</h1>
@@ -430,6 +434,7 @@
             var requestId = currentPopupCard.dataset.requestId;
             var modalContent = document.querySelector('#itemPopupModal .item-detail-modal');
 
+            Loading.show('overlay');
             fetch('/request/' + requestId + '/return', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -437,6 +442,7 @@
             })
             .then(function(response) { return response.json(); })
             .then(function(data) {
+                Loading.hide();
                 updateReturnUI(data.return_status, data.returned_at, modalContent);
 
                 currentPopupCard.dataset.returnStatus = data.return_status;
@@ -461,6 +467,7 @@
                 }
             })
             .catch(function() {
+                Loading.hide();
                 checkbox.checked = false;
             });
         }

@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="chat-page">
+    {% include 'loading_screen.html' %}
     <div class="container">
         <header class="chat-header">
             <a href="{{ url_for('chat_index') }}" class="chat-back" aria-label="Back"><span class="icon icon-back" aria-hidden="true"></span></a>
@@ -102,6 +103,7 @@
             backLink.addEventListener('click', function(event) {
                 event.preventDefault();
                 leftViaLink = true;
+                Loading.show('overlay');
                 var destination = backLink.href;
                 fetch(markReadUrl, { method: 'POST' })
                     .catch(function() {})
