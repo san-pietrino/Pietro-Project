@@ -1121,6 +1121,25 @@ small {
     white-space: nowrap;
 }
 
+.chat-card.unread {
+    background: #fff2f8;
+    border-color: #ff1493;
+}
+
+.chat-card.unread .chat-snippet {
+    color: #0a2555;
+    font-weight: 600;
+}
+
+.unread-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #ff1493;
+    vertical-align: middle;
+}
+
 .chat-info {
     color: var(--text-light);
     margin-bottom: 20px;
@@ -1997,6 +2016,7 @@ footer {
     margin: 0 auto;
 }
 .bottom-nav .nav-item {
+    position: relative;
     flex: 1 1 0;
     min-width: 0;
     height: 54px;
@@ -2010,6 +2030,17 @@ footer {
     transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
     box-shadow: 0 6px 16px rgba(0,0,0,0.14);
     padding: 0;
+}
+
+.nav-dot {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ff1493;
+    border: 2px solid white;
 }
 .bottom-nav .nav-item .icon {
     width: 1.5rem;

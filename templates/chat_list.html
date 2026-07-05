@@ -18,11 +18,11 @@
                 {% if chats %}
                 <div class="chat-list">
                     {% for chat in chats %}
-                    <a href="{{ url_for('chat', request_id=chat.id) }}" class="chat-card">
+                    <a href="{{ url_for('chat', request_id=chat.id) }}" class="chat-card{% if chat.unread %} unread{% endif %}">
                         <div class="chat-card-left">
                             <div class="avatar icon icon-request"></div>
                             <div class="chat-card-text">
-                                <div class="chat-name">{{ chat.other_name }}</div>
+                                <div class="chat-name">{{ chat.other_name }}{% if chat.unread %} <span class="unread-dot" aria-label="Unread"></span>{% endif %}</div>
                                 <p class="chat-snippet">{{ chat.last_message }}</p>
                             </div>
                         </div>

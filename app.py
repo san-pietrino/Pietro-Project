@@ -229,6 +229,8 @@ def init_db():
         cursor.execute("ALTER TABLE messages ADD COLUMN message_type TEXT DEFAULT 'text'")
     if 'resolved' not in message_columns:
         cursor.execute('ALTER TABLE messages ADD COLUMN resolved INTEGER DEFAULT 0')
+    if 'is_read' not in message_columns:
+        cursor.execute('ALTER TABLE messages ADD COLUMN is_read INTEGER DEFAULT 0')
     
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS password_reset_tokens (
@@ -256,6 +258,29 @@ def inject_current_user_photo():
     row = cursor.fetchone()
     conn.close()
     return {'current_user_photo': row['photo'] if row else None}
+
+
+@app.context_processor
+def inject_unread_messages():
+    """Make it known to every template whether the logged-in user has any
+    unread chat messages, so the bottom-nav chat icon can show a dot."""
+    if 'user_id' not in session:
+        return {'has_unread_messages': False}
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT 1
+        FROM messages m
+        JOIN requests r ON m.request_id = r.id
+        JOIN items i ON r.item_id = i.id
+        WHERE (i.owner_id = ? OR r.borrower_id = ?)
+          AND m.sender_id != ?
+          AND m.is_read = 0
+        LIMIT 1
+    ''', (session['user_id'], session['user_id'], session['user_id']))
+    row = cursor.fetchone()
+    conn.close()
+    return {'has_unread_messages': row is not None}
 
 
 # ==================== AUTHENTICATION ====================
@@ -1178,7 +1203,8 @@ def chat_index():
         SELECT r.id, i.name as item_name,
                (CASE WHEN i.owner_id = ? THEN u2.username ELSE u1.username END) as other_name,
                (SELECT content FROM messages m WHERE m.request_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message,
-               (SELECT created_at FROM messages m WHERE m.request_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message_at
+               (SELECT created_at FROM messages m WHERE m.request_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message_at,
+               EXISTS (SELECT 1 FROM messages m WHERE m.request_id = r.id AND m.sender_id != ? AND m.is_read = 0) as unread
         FROM requests r
         JOIN items i ON r.item_id = i.id
         JOIN users u1 ON i.owner_id = u1.id
@@ -1186,7 +1212,7 @@ def chat_index():
         WHERE (i.owner_id = ? OR r.borrower_id = ?)
           AND EXISTS (SELECT 1 FROM messages m WHERE m.request_id = r.id)
         ORDER BY last_message_at DESC
-    ''', (session['user_id'], session['user_id'], session['user_id']))
+    ''', (session['user_id'], session['user_id'], session['user_id'], session['user_id']))
     rows = cursor.fetchall()
 
     conn.close()
@@ -1244,6 +1270,12 @@ def chat(request_id):
         msg['created_at'] = format_message_time(row['created_at'])
         messages.append(msg)
 
+    # Mark the other person's messages as read now that this user has opened the chat.
+    cursor.execute('''
+        UPDATE messages SET is_read = 1
+        WHERE request_id = ? AND sender_id != ? AND is_read = 0
+    ''', (request_id, session['user_id']))
+    conn.commit()
     conn.close()
 
     return render_template('chat.html',
