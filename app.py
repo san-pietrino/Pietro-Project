@@ -229,6 +229,8 @@ def init_db():
         cursor.execute("ALTER TABLE messages ADD COLUMN message_type TEXT DEFAULT 'text'")
     if 'resolved' not in message_columns:
         cursor.execute('ALTER TABLE messages ADD COLUMN resolved INTEGER DEFAULT 0')
+    if 'read' not in message_columns:
+        cursor.execute('ALTER TABLE messages ADD COLUMN read INTEGER DEFAULT 0')
     
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS password_reset_tokens (
@@ -1177,16 +1179,18 @@ def chat_index():
     cursor.execute('''
         SELECT r.id, i.name as item_name,
                (CASE WHEN i.owner_id = ? THEN u2.username ELSE u1.username END) as other_name,
+               (CASE WHEN i.owner_id = ? THEN u2.photo ELSE u1.photo END) as other_photo,
                (SELECT content FROM messages m WHERE m.request_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message,
-               (SELECT created_at FROM messages m WHERE m.request_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message_at
+               (SELECT created_at FROM messages m WHERE m.request_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message_at,
+               (SELECT COUNT(*) FROM messages m WHERE m.request_id = r.id AND m.sender_id != ? AND m.read = 0) as unread_count
         FROM requests r
         JOIN items i ON r.item_id = i.id
         JOIN users u1 ON i.owner_id = u1.id
         JOIN users u2 ON r.borrower_id = u2.id
         WHERE (i.owner_id = ? OR r.borrower_id = ?)
           AND EXISTS (SELECT 1 FROM messages m WHERE m.request_id = r.id)
-        ORDER BY last_message_at DESC
-    ''', (session['user_id'], session['user_id'], session['user_id']))
+        ORDER BY unread_count > 0 DESC, last_message_at DESC
+    ''', (session['user_id'], session['user_id'], session['user_id'], session['user_id'], session['user_id']))
     rows = cursor.fetchall()
 
     conn.close()
@@ -1231,6 +1235,14 @@ def chat(request_id):
         chat_partner = request_data['borrower_name']
     else:
         chat_partner = request_data['requester_name']
+
+    # Opening the chat marks the other person's messages as read.
+    cursor.execute('''
+        UPDATE messages SET read = 1
+        WHERE request_id = ? AND sender_id != ? AND read = 0
+    ''', (request_id, session['user_id']))
+    conn.commit()
+
     cursor.execute('''
         SELECT m.*, u.username as sender_name
         FROM messages m

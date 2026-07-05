@@ -18,15 +18,26 @@
                 {% if chats %}
                 <div class="chat-list">
                     {% for chat in chats %}
-                    <a href="{{ url_for('chat', request_id=chat.id) }}" class="chat-card">
+                    <a href="{{ url_for('chat', request_id=chat.id) }}" class="chat-card{% if chat.unread_count %} unread{% endif %}">
                         <div class="chat-card-left">
-                            <div class="avatar icon icon-request"></div>
+                            <div class="avatar">
+                                {% if chat.other_photo %}
+                                <img src="{{ url_for('static', filename='uploads/' + chat.other_photo) }}" alt="" class="avatar-photo">
+                                {% else %}
+                                <span class="icon icon-user" aria-hidden="true"></span>
+                                {% endif %}
+                            </div>
                             <div class="chat-card-text">
                                 <div class="chat-name">{{ chat.other_name }}</div>
                                 <p class="chat-snippet">{{ chat.last_message }}</p>
                             </div>
                         </div>
-                        <div class="chat-card-time">{{ chat.last_message_at }}</div>
+                        <div class="chat-card-right">
+                            <div class="chat-card-time">{{ chat.last_message_at }}</div>
+                            {% if chat.unread_count %}
+                            <span class="chat-unread-badge">{{ chat.unread_count }}</span>
+                            {% endif %}
+                        </div>
                     </a>
                     {% endfor %}
                 </div>

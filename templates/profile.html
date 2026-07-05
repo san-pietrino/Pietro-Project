@@ -218,10 +218,10 @@
                                         <img src="{{ url_for('static', filename='uploads/' + item.photo) }}" alt="{{ item.name }}"
                                              onerror="this.style.display='none'; this.parentNode.querySelector('.item-image-placeholder').style.display='block';">
                                     {% endif %}
+                                    <div class="item-status-overlay {{ item.return_status }}" {% if item.return_status == 'not_returned' %}style="display:none;"{% endif %}>{% if item.return_status == 'returned' %}Returned on {{ item.returned_at_display }}{% elif item.return_status == 'pending_confirmation' %}Awaiting confirmation{% endif %}</div>
                                 </div>
                                 <div class="item-name">{{ item.name }}</div>
                                 <div class="item-owner">{{ item.owner_name }}</div>
-                                <div class="borrowed-reminder">{% if item.return_status == 'returned' %}Returned on {{ item.returned_at_display }}{% elif item.return_status == 'pending_confirmation' %}Awaiting confirmation{% endif %}</div>
                             </div>
                             {% endfor %}
                         {% else %}
@@ -439,14 +439,19 @@
                 currentPopupCard.classList.remove('not_returned', 'pending_confirmation', 'returned');
                 currentPopupCard.classList.add(data.return_status);
 
-                var reminderEl = currentPopupCard.querySelector('.borrowed-reminder');
-                if (reminderEl) {
+                var overlayEl = currentPopupCard.querySelector('.item-status-overlay');
+                if (overlayEl) {
+                    overlayEl.classList.remove('not_returned', 'pending_confirmation', 'returned');
+                    overlayEl.classList.add(data.return_status);
                     if (data.return_status === 'returned') {
-                        reminderEl.textContent = 'Returned on ' + formatReturnDate(data.returned_at);
+                        overlayEl.textContent = 'Returned on ' + formatReturnDate(data.returned_at);
+                        overlayEl.style.display = 'block';
                     } else if (data.return_status === 'pending_confirmation') {
-                        reminderEl.textContent = 'Awaiting confirmation';
+                        overlayEl.textContent = 'Awaiting confirmation';
+                        overlayEl.style.display = 'block';
                     } else {
-                        reminderEl.textContent = '';
+                        overlayEl.textContent = '';
+                        overlayEl.style.display = 'none';
                     }
                 }
             })
