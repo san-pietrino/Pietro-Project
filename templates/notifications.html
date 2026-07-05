@@ -10,7 +10,10 @@
 <body>
     <div class="container">
         <header>
-            <h1><span class="icon icon-package" aria-hidden="true"></span> Pietro</h1>
+            <h1>
+                <a href="javascript:history.back()" class="item-detail-back" aria-label="Back"><span class="icon icon-back" aria-hidden="true"></span></a>
+                <span class="icon icon-package" aria-hidden="true"></span> Pietro
+            </h1>
             <nav>
                 <a href="{{ url_for('dashboard') }}">Dashboard</a>
                 <a href="{{ url_for('search') }}">Search</a>

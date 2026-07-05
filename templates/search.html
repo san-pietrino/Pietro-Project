@@ -153,7 +153,10 @@
 <body class="dashboard-page">
     <div class="container dashboard-mobile">
         <header class="dashboard-header">
-            <h1 class="welcome">Search</h1>
+            <h1 class="welcome">
+                <a href="javascript:history.back()" class="item-detail-back" aria-label="Back"><span class="icon icon-back" aria-hidden="true"></span></a>
+                Search
+            </h1>
             <form class="search-form-mobile" action="{{ url_for('search') }}" method="GET" autocomplete="off" data-live-search>
                 <div class="search-bar-wrapper">
                     <input type="text" name="q" value="{{ query }}" placeholder="what are you looking for?" aria-label="search">

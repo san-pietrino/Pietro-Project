@@ -1647,6 +1647,27 @@ footer {
     padding: 24px;
     box-shadow: 0 20px 50px rgba(0,0,0,0.18);
 }
+.item-detail-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #f2f4f8;
+    color: #0a2555;
+    text-decoration: none;
+    font-size: 1.6rem;
+    font-weight: bold;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+}
+.item-detail-close:hover {
+    background: #e6e9f0;
+}
 .item-detail-name {
     font-size: 2rem;
     color: #0026CF;
