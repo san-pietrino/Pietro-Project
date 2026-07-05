@@ -1194,17 +1194,18 @@ def chat_index():
     cursor.execute('''
         SELECT r.id, i.name as item_name,
                (CASE WHEN i.owner_id = ? THEN u2.username ELSE u1.username END) as other_name,
+               (CASE WHEN i.owner_id = ? THEN u2.photo ELSE u1.photo END) as other_photo,
                (SELECT content FROM messages m WHERE m.request_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message,
                (SELECT created_at FROM messages m WHERE m.request_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message_at,
-               EXISTS (SELECT 1 FROM messages m WHERE m.request_id = r.id AND m.sender_id != ? AND m.is_read = 0) as unread
+               (SELECT COUNT(*) FROM messages m WHERE m.request_id = r.id AND m.sender_id != ? AND m.is_read = 0) as unread_count
         FROM requests r
         JOIN items i ON r.item_id = i.id
         JOIN users u1 ON i.owner_id = u1.id
         JOIN users u2 ON r.borrower_id = u2.id
         WHERE (i.owner_id = ? OR r.borrower_id = ?)
           AND EXISTS (SELECT 1 FROM messages m WHERE m.request_id = r.id)
-        ORDER BY last_message_at DESC
-    ''', (session['user_id'], session['user_id'], session['user_id'], session['user_id']))
+        ORDER BY unread_count > 0 DESC, last_message_at DESC
+    ''', (session['user_id'], session['user_id'], session['user_id'], session['user_id'], session['user_id']))
     rows = cursor.fetchall()
 
     conn.close()
@@ -1249,6 +1250,7 @@ def chat(request_id):
         chat_partner = request_data['borrower_name']
     else:
         chat_partner = request_data['requester_name']
+
     cursor.execute('''
         SELECT m.*, u.username as sender_name
         FROM messages m
