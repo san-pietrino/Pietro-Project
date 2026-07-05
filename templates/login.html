@@ -38,16 +38,35 @@
             background-color: #e8f5e9;
             border-radius: 4px;
         }
-        .forgot-password-link {
-            text-align: right;
+        .login-options-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
             margin-top: 10px;
+            margin-bottom: 28px;
             font-size: 0.9em;
         }
-        .forgot-password-link a {
+        .remember-me-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #0a2555;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .remember-me-label input {
+            accent-color: #0026CF;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .login-options-row a {
             color: #0026CF;
             text-decoration: none;
         }
-        .forgot-password-link a:hover {
+        .login-options-row a:hover {
             text-decoration: underline;
         }
     </style>
@@ -79,7 +98,11 @@
                         </button>
                     </div>
                 </div>
-                <div class="forgot-password-link">
+                <div class="login-options-row">
+                    <label class="remember-me-label">
+                        <input type="checkbox" name="remember_me" value="1">
+                        Remember me
+                    </label>
                     <a href="{{ url_for('forgot_password') }}">Forgot your password?</a>
                 </div>
                 <button type="submit" class="btn-primary">Login</button>

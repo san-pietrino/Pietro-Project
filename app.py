@@ -6,12 +6,13 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from datetime import datetime
+from datetime import datetime, timedelta
 import math
 import os
 
 app = Flask(__name__)
 app.secret_key = 'pietro-secret-key-change-in-production'  # → see DECISIONS.md #2
+app.permanent_session_lifetime = timedelta(days=30)
 
 # Database configuration
 DATABASE = 'pietro.db'
@@ -177,6 +178,8 @@ def init_db():
         cursor.execute('ALTER TABLE users ADD COLUMN latitude REAL')
     if 'longitude' not in user_columns:
         cursor.execute('ALTER TABLE users ADD COLUMN longitude REAL')
+    if 'onboarding_seen' not in user_columns:
+        cursor.execute('ALTER TABLE users ADD COLUMN onboarding_seen INTEGER DEFAULT 0')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS items (
@@ -389,6 +392,7 @@ def login():
             return redirect(url_for('register'))
         
         if check_password_hash(user['password'], password):
+            session.permanent = bool(request.form.get('remember_me'))
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['login_success'] = True  # Flag to show success message on dashboard
@@ -498,10 +502,18 @@ def dashboard():
     success_message = None
     if session.pop('login_success', False):
         success_message = 'You are successfully logged in'
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
+    # Show the "add an item" prompt once, the first time this user reaches the dashboard.
+    cursor.execute('SELECT onboarding_seen FROM users WHERE id = ?', (session['user_id'],))
+    onboarding_row = cursor.fetchone()
+    show_add_item_prompt = bool(onboarding_row) and not onboarding_row['onboarding_seen']
+    if show_add_item_prompt:
+        cursor.execute('UPDATE users SET onboarding_seen = 1 WHERE id = ?', (session['user_id'],))
+        conn.commit()
+
     # Get user's items
     cursor.execute('SELECT * FROM items WHERE owner_id = ?', (session['user_id'],))
     my_items = cursor.fetchall()
@@ -574,6 +586,7 @@ def dashboard():
     return render_template('dashboard.html',
                          username=session['username'],
                          success_message=success_message,
+                         show_add_item_prompt=show_add_item_prompt,
                          my_items=my_items,
                          requests_for_me=requests_for_me,
                          matching_requested_items=matching_requested_items,

@@ -211,6 +211,12 @@
         });
     </script>
 
+    {% if show_add_item_prompt %}
+    <script>
+        openFooterAddItemModal();
+    </script>
+    {% endif %}
+
     <script>
         (function() {
             var scroller = document.querySelector('.pending-cards-scroll');

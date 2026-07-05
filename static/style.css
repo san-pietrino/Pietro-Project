@@ -251,17 +251,6 @@ body {
     font-size: 1rem;
 }
 
-.forgot-password-link {
-    text-align: right;
-    margin-bottom: 28px;
-}
-
-.forgot-password-link a {
-    color: #0026CF;
-    text-decoration: underline;
-    font-size: 0.95rem;
-}
-
 .login-card .btn-primary {
     display: inline-block;
     width: auto;
