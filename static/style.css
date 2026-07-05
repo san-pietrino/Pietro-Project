@@ -255,17 +255,6 @@ body {
     font-size: 1rem;
 }
 
-.forgot-password-link {
-    text-align: right;
-    margin-bottom: 28px;
-}
-
-.forgot-password-link a {
-    color: var(--color-blue);
-    text-decoration: underline;
-    font-size: 0.95rem;
-}
-
 .login-card .btn-primary {
     width: 100%;
     margin-top: 10px;
@@ -2054,6 +2043,7 @@ footer {
     margin: 0 auto;
 }
 .bottom-nav .nav-item {
+    position: relative;
     flex: 1 1 0;
     min-width: 0;
     height: 54px;
@@ -2067,6 +2057,17 @@ footer {
     transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
     box-shadow: 0 6px 16px rgba(0,0,0,0.14);
     padding: 0;
+}
+
+.nav-dot {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-pink);
+    border: 2px solid var(--color-white);
 }
 .bottom-nav .nav-item .icon {
     width: 1.5rem;

@@ -6,12 +6,13 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from datetime import datetime
+from datetime import datetime, timedelta
 import math
 import os
 
 app = Flask(__name__)
 app.secret_key = 'pietro-secret-key-change-in-production'  # → see DECISIONS.md #2
+app.permanent_session_lifetime = timedelta(days=30)
 
 # Database configuration
 DATABASE = 'pietro.db'
@@ -177,6 +178,8 @@ def init_db():
         cursor.execute('ALTER TABLE users ADD COLUMN latitude REAL')
     if 'longitude' not in user_columns:
         cursor.execute('ALTER TABLE users ADD COLUMN longitude REAL')
+    if 'onboarding_seen' not in user_columns:
+        cursor.execute('ALTER TABLE users ADD COLUMN onboarding_seen INTEGER DEFAULT 0')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS items (
@@ -229,8 +232,8 @@ def init_db():
         cursor.execute("ALTER TABLE messages ADD COLUMN message_type TEXT DEFAULT 'text'")
     if 'resolved' not in message_columns:
         cursor.execute('ALTER TABLE messages ADD COLUMN resolved INTEGER DEFAULT 0')
-    if 'read' not in message_columns:
-        cursor.execute('ALTER TABLE messages ADD COLUMN read INTEGER DEFAULT 0')
+    if 'is_read' not in message_columns:
+        cursor.execute('ALTER TABLE messages ADD COLUMN is_read INTEGER DEFAULT 0')
     
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS password_reset_tokens (
@@ -258,6 +261,29 @@ def inject_current_user_photo():
     row = cursor.fetchone()
     conn.close()
     return {'current_user_photo': row['photo'] if row else None}
+
+
+@app.context_processor
+def inject_unread_messages():
+    """Make it known to every template whether the logged-in user has any
+    unread chat messages, so the bottom-nav chat icon can show a dot."""
+    if 'user_id' not in session:
+        return {'has_unread_messages': False}
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT 1
+        FROM messages m
+        JOIN requests r ON m.request_id = r.id
+        JOIN items i ON r.item_id = i.id
+        WHERE (i.owner_id = ? OR r.borrower_id = ?)
+          AND m.sender_id != ?
+          AND m.is_read = 0
+        LIMIT 1
+    ''', (session['user_id'], session['user_id'], session['user_id']))
+    row = cursor.fetchone()
+    conn.close()
+    return {'has_unread_messages': row is not None}
 
 
 # ==================== AUTHENTICATION ====================
@@ -366,6 +392,7 @@ def login():
             return redirect(url_for('register'))
         
         if check_password_hash(user['password'], password):
+            session.permanent = bool(request.form.get('remember_me'))
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['login_success'] = True  # Flag to show success message on dashboard
@@ -475,10 +502,18 @@ def dashboard():
     success_message = None
     if session.pop('login_success', False):
         success_message = 'You are successfully logged in'
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
+    # Show the "add an item" prompt once, the first time this user reaches the dashboard.
+    cursor.execute('SELECT onboarding_seen FROM users WHERE id = ?', (session['user_id'],))
+    onboarding_row = cursor.fetchone()
+    show_add_item_prompt = bool(onboarding_row) and not onboarding_row['onboarding_seen']
+    if show_add_item_prompt:
+        cursor.execute('UPDATE users SET onboarding_seen = 1 WHERE id = ?', (session['user_id'],))
+        conn.commit()
+
     # Get user's items
     cursor.execute('SELECT * FROM items WHERE owner_id = ?', (session['user_id'],))
     my_items = cursor.fetchall()
@@ -551,6 +586,7 @@ def dashboard():
     return render_template('dashboard.html',
                          username=session['username'],
                          success_message=success_message,
+                         show_add_item_prompt=show_add_item_prompt,
                          my_items=my_items,
                          requests_for_me=requests_for_me,
                          matching_requested_items=matching_requested_items,
@@ -1182,7 +1218,7 @@ def chat_index():
                (CASE WHEN i.owner_id = ? THEN u2.photo ELSE u1.photo END) as other_photo,
                (SELECT content FROM messages m WHERE m.request_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message,
                (SELECT created_at FROM messages m WHERE m.request_id = r.id ORDER BY m.created_at DESC LIMIT 1) as last_message_at,
-               (SELECT COUNT(*) FROM messages m WHERE m.request_id = r.id AND m.sender_id != ? AND m.read = 0) as unread_count
+               (SELECT COUNT(*) FROM messages m WHERE m.request_id = r.id AND m.sender_id != ? AND m.is_read = 0) as unread_count
         FROM requests r
         JOIN items i ON r.item_id = i.id
         JOIN users u1 ON i.owner_id = u1.id
@@ -1236,13 +1272,6 @@ def chat(request_id):
     else:
         chat_partner = request_data['requester_name']
 
-    # Opening the chat marks the other person's messages as read.
-    cursor.execute('''
-        UPDATE messages SET read = 1
-        WHERE request_id = ? AND sender_id != ? AND read = 0
-    ''', (request_id, session['user_id']))
-    conn.commit()
-
     cursor.execute('''
         SELECT m.*, u.username as sender_name
         FROM messages m
@@ -1256,6 +1285,12 @@ def chat(request_id):
         msg['created_at'] = format_message_time(row['created_at'])
         messages.append(msg)
 
+    # Mark the other person's messages as read now that this user has opened the chat.
+    cursor.execute('''
+        UPDATE messages SET is_read = 1
+        WHERE request_id = ? AND sender_id != ? AND is_read = 0
+    ''', (request_id, session['user_id']))
+    conn.commit()
     conn.close()
 
     return render_template('chat.html',
