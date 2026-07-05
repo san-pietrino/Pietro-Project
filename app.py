@@ -963,6 +963,43 @@ def edit_profile():
     return redirect(url_for('profile'))
 
 
+@app.route('/account/delete', methods=['POST'])
+def delete_account():
+    """Permanently delete the logged-in user's own account, along with
+    everything tied to it - items they own, requests they're party to
+    (as owner or borrower), and the messages in those chats."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT id FROM items WHERE owner_id = ?', (user_id,))
+    item_ids = [row['id'] for row in cursor.fetchall()]
+    item_placeholders = ','.join('?' * len(item_ids)) if item_ids else 'NULL'
+
+    cursor.execute(
+        f'SELECT id FROM requests WHERE borrower_id = ? OR item_id IN ({item_placeholders})',
+        [user_id] + item_ids
+    )
+    request_ids = [row['id'] for row in cursor.fetchall()]
+
+    if request_ids:
+        request_placeholders = ','.join('?' * len(request_ids))
+        cursor.execute(f'DELETE FROM messages WHERE request_id IN ({request_placeholders})', request_ids)
+        cursor.execute(f'DELETE FROM requests WHERE id IN ({request_placeholders})', request_ids)
+    if item_ids:
+        cursor.execute(f'DELETE FROM items WHERE id IN ({item_placeholders})', item_ids)
+    cursor.execute('DELETE FROM users WHERE id = ?', (user_id,))
+
+    conn.commit()
+    conn.close()
+
+    session.clear()
+    return redirect(url_for('login'))
+
+
 # ==================== ITEM SEARCH ====================
 
 # Below this, a normalized+fuzzy match is considered "close enough" to show.

@@ -2041,6 +2041,28 @@ footer {
     background: var(--color-pink);
     color: white;
 }
+.account-danger-zone {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-grey);
+}
+.btn-delete-account {
+    width: 100%;
+    padding: 14px;
+    background: none;
+    border: 2px solid var(--color-pink);
+    color: var(--color-pink);
+    border-radius: 28px;
+    font-weight: 700;
+    font-size: 1rem;
+    font-family: var(--font-secondary);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+.btn-delete-account:hover {
+    background: var(--color-pink);
+    color: white;
+}
 .return-toggle {
     position: relative;
     display: inline-block;

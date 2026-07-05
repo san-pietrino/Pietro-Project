@@ -321,6 +321,13 @@
                 </div>
                 <button type="submit" class="btn-save">Save</button>
             </form>
+
+            <div class="account-danger-zone">
+                <form method="POST" action="{{ url_for('delete_account') }}"
+                      onsubmit="return confirm('This will permanently delete your account, along with all your items, requests and messages. This cannot be undone. Are you sure?');">
+                    <button type="submit" class="btn-delete-account">Delete Account</button>
+                </form>
+            </div>
         </div>
     </div>
 
