@@ -897,7 +897,7 @@ def profile():
         FROM requests r
         JOIN items i ON r.item_id = i.id
         JOIN users u ON i.owner_id = u.id
-        WHERE r.borrower_id = ? AND r.status = 'accepted'
+        WHERE r.borrower_id = ? AND r.status = 'accepted' AND i.status NOT IN ('requested', 'fulfilled')
         ORDER BY r.created_at DESC
     ''', (session['user_id'],))
     borrowed_items = []
