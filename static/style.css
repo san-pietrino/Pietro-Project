@@ -734,8 +734,8 @@ small {
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: white;
-    border: 2px solid var(--color-pink);
+    background: var(--color-orange);
+    border: 2px solid var(--color-orange);
     color: var(--color-blue);
     display: flex;
     align-items: center;
@@ -1001,6 +1001,10 @@ small {
 
 .item-status-overlay.returned {
     color: var(--color-green);
+}
+
+.item-status-overlay.lent {
+    color: var(--color-orange);
 }
 
 .item-image {
@@ -1919,6 +1923,9 @@ footer {
     color: #999999;
     font-weight: 700;
     font-family: var(--font-secondary);
+}
+.item-detail-unavailable.item-detail-lent {
+    color: var(--color-orange);
 }
 .return-status-block {
     display: flex;
