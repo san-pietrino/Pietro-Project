@@ -1639,6 +1639,54 @@ def add_item():
     return render_template('add_item.html', categories=categories_list, user_items=user_items)
 
 
+@app.route('/item/<int:item_id>/edit', methods=['POST'])
+def edit_item(item_id):
+    """Let an owner update the name, category, description or photo of their own item."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT owner_id, photo FROM items WHERE id = ?', (item_id,))
+    item = cursor.fetchone()
+    if not item or item['owner_id'] != session['user_id']:
+        conn.close()
+        return "Unauthorized", 403
+
+    name = request.form.get('name')
+    category = request.form.get('category')
+    description = request.form.get('description')
+
+    if not name or not category:
+        conn.close()
+        return "Item name and category are required", 400
+
+    photo = item['photo']
+    photo_file = request.files.get('photo')
+    if photo_file and photo_file.filename:
+        from datetime import datetime as dt
+        timestamp = dt.now().strftime('%Y%m%d%H%M%S')
+        filename = f"{timestamp}_{secure_filename(photo_file.filename)}"
+        uploads_dir = os.path.join(app.static_folder, 'uploads')
+        if not os.path.exists(uploads_dir):
+            os.makedirs(uploads_dir)
+        photo_file.save(os.path.join(uploads_dir, filename))
+        photo = filename
+
+    cursor.execute('''
+        UPDATE items SET name = ?, category = ?, description = ?, photo = ?
+        WHERE id = ?
+    ''', (name, category, description, photo, item_id))
+    conn.commit()
+    conn.close()
+
+    referrer = request.referrer
+    if referrer and referrer.startswith(request.host_url):
+        return redirect(referrer)
+    return redirect(url_for('profile'))
+
+
 @app.route('/item/<int:item_id>/delete', methods=['POST'])
 def delete_item(item_id):
     """Let an owner delete one of their own items. Blocked only while the item is

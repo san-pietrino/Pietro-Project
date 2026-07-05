@@ -2023,7 +2023,7 @@ footer {
     font-family: var(--font-secondary);
     cursor: pointer;
 }
-.item-delete-btn {
+.item-delete-btn, .item-edit-btn {
     width: 100%;
     margin-top: 16px;
     padding: 12px 20px;
@@ -2039,6 +2039,14 @@ footer {
 }
 .item-delete-btn:hover {
     background: var(--color-pink);
+    color: white;
+}
+.item-edit-btn {
+    border-color: var(--color-blue);
+    color: var(--color-blue);
+}
+.item-edit-btn:hover {
+    background: var(--color-blue);
     color: white;
 }
 .account-danger-zone {
