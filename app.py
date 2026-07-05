@@ -776,7 +776,8 @@ def profile():
                (SELECT u.username FROM requests r
                 JOIN users u ON r.borrower_id = u.id
                 WHERE r.item_id = i.id AND r.status = 'accepted' AND r.return_status != 'returned'
-                ORDER BY r.created_at DESC LIMIT 1) as borrower_name
+                ORDER BY r.created_at DESC LIMIT 1) as borrower_name,
+               (SELECT COUNT(*) FROM requests r WHERE r.item_id = i.id) as request_count
         FROM items i
         WHERE i.owner_id = ? AND i.status != 'requested'
     ''', (session['user_id'],))
@@ -1445,6 +1446,34 @@ def add_item():
     conn.close()
     
     return render_template('add_item.html', categories=categories_list, user_items=user_items)
+
+
+@app.route('/item/<int:item_id>/delete', methods=['POST'])
+def delete_item(item_id):
+    """Let an owner delete one of their own items. Blocked if the item has ever
+    been requested/borrowed, so we don't orphan another user's chat or history."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT owner_id FROM items WHERE id = ?', (item_id,))
+    item = cursor.fetchone()
+    if not item or item['owner_id'] != session['user_id']:
+        conn.close()
+        return "Unauthorized", 403
+
+    cursor.execute('SELECT COUNT(*) as count FROM requests WHERE item_id = ?', (item_id,))
+    if cursor.fetchone()['count'] > 0:
+        conn.close()
+        return "This item has borrow history and can't be deleted", 400
+
+    cursor.execute('DELETE FROM items WHERE id = ?', (item_id,))
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for('profile'))
 
 
 # ==================== NOTIFICATIONS ====================

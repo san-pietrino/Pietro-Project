@@ -176,6 +176,7 @@
                         {% if my_items %}
                             {% for item in my_items %}
                             <div class="item-card{% if item.borrower_name %} lent{% endif %}" role="button" tabindex="0"
+                                 data-item-id="{{ item.id }}"
                                  data-name="{{ item.name }}"
                                  data-category="{{ item.category or '' }}"
                                  data-description="{{ item.description or 'No description provided.' }}"
@@ -183,6 +184,7 @@
                                  data-owner=""
                                  data-owner-location=""
                                  data-footer="{% if item.borrower_name %}Currently lent to {{ item.borrower_name }}{% else %}This is your item{% endif %}"
+                                 data-can-delete="{% if not item.borrower_name and item.request_count == 0 %}true{% else %}false{% endif %}"
                                  onclick="openItemPopup(this)" onkeydown="if(event.key==='Enter'){openItemPopup(this)}">
                                 <div class="item-image">
                                     <div class="item-image-placeholder" {% if item.photo %}style="display:none;"{% endif %}></div>
@@ -265,6 +267,9 @@
                 </div>
                 <span class="item-detail-unavailable" id="itemPopupFooter"></span>
             </div>
+            <form method="POST" id="deleteItemForm" style="display:none;" onsubmit="return confirm('Delete this item? This cannot be undone.');">
+                <button type="submit" class="item-delete-btn">Delete item</button>
+            </form>
         </div>
     </div>
 
@@ -380,6 +385,7 @@
             var modalContent = document.querySelector('#itemPopupModal .item-detail-modal');
             var footerEl = document.getElementById('itemPopupFooter');
             var returnBlock = document.getElementById('itemPopupReturnBlock');
+            var deleteForm = document.getElementById('deleteItemForm');
 
             if (card.dataset.requestId) {
                 footerEl.style.display = 'none';
@@ -391,6 +397,13 @@
                 footerEl.style.display = 'inline';
                 footerEl.textContent = card.dataset.footer || '';
                 modalContent.classList.remove('unreturned', 'returned-ok', 'pending-return');
+            }
+
+            if (card.dataset.canDelete === 'true') {
+                deleteForm.action = '/item/' + card.dataset.itemId + '/delete';
+                deleteForm.style.display = 'block';
+            } else {
+                deleteForm.style.display = 'none';
             }
 
             document.getElementById('itemPopupModal').classList.add('show');

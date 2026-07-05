@@ -1968,6 +1968,24 @@ footer {
     font-family: var(--font-secondary);
     cursor: pointer;
 }
+.item-delete-btn {
+    width: 100%;
+    margin-top: 16px;
+    padding: 12px 20px;
+    background: none;
+    border: 2px solid var(--color-pink);
+    color: var(--color-pink);
+    border-radius: 20px;
+    font-weight: 800;
+    font-size: 0.9rem;
+    font-family: var(--font-secondary);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+.item-delete-btn:hover {
+    background: var(--color-pink);
+    color: white;
+}
 .return-toggle {
     position: relative;
     display: inline-block;
