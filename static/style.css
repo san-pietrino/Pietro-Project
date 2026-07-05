@@ -1908,20 +1908,22 @@ footer {
     right: 16px;
     width: 34px;
     height: 34px;
-    border-radius: 50%;
-    background: #f2f4f8;
+    border: none;
+    background: transparent;
     color: var(--color-blue);
     text-decoration: none;
-    font-size: 1.6rem;
+    font-size: 1.8rem;
     font-weight: bold;
     line-height: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s ease;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
 }
 .item-detail-close:hover {
-    background: #e6e9f0;
+    background: rgba(13, 33, 164, 0.08);
 }
 .item-detail-name {
     font-size: 2rem;
@@ -2023,31 +2025,41 @@ footer {
     font-family: var(--font-secondary);
     cursor: pointer;
 }
-.item-delete-btn, .item-edit-btn {
+.item-edit-btn {
     width: 100%;
     margin-top: 16px;
     padding: 12px 20px;
-    background: none;
-    border: 2px solid var(--color-pink);
-    color: var(--color-pink);
+    background: #e9e9ee;
+    border: none;
+    color: var(--color-blue);
     border-radius: 20px;
     font-weight: 800;
     font-size: 0.9rem;
     font-family: var(--font-secondary);
     cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease;
-}
-.item-delete-btn:hover {
-    background: var(--color-pink);
-    color: white;
-}
-.item-edit-btn {
-    border-color: var(--color-blue);
-    color: var(--color-blue);
+    transition: background 0.2s ease;
 }
 .item-edit-btn:hover {
-    background: var(--color-blue);
-    color: white;
+    background: #dcdce3;
+}
+.item-delete-btn {
+    display: block;
+    width: 100%;
+    margin-top: 16px;
+    padding: 8px;
+    background: none;
+    border: none;
+    color: var(--color-pink);
+    text-decoration: underline;
+    font-weight: 600;
+    font-size: 0.9rem;
+    font-family: var(--font-secondary);
+    cursor: pointer;
+    text-align: center;
+}
+.item-delete-btn:hover {
+    color: var(--color-pink);
+    opacity: 0.8;
 }
 .account-danger-zone {
     margin-top: 24px;
