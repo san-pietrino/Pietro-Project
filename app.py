@@ -203,6 +203,14 @@ def init_db():
         )
     ''')
     
+    cursor.execute('PRAGMA table_info(requests)')
+    request_columns = [row[1] for row in cursor.fetchall()]
+    if 'returned_at' not in request_columns:
+        cursor.execute('ALTER TABLE requests ADD COLUMN returned_at TEXT')
+    if 'return_status' not in request_columns:
+        cursor.execute("ALTER TABLE requests ADD COLUMN return_status TEXT DEFAULT 'not_returned'")
+        cursor.execute("UPDATE requests SET return_status = 'returned' WHERE returned_at IS NOT NULL")
+
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -214,6 +222,13 @@ def init_db():
             FOREIGN KEY (sender_id) REFERENCES users (id)
         )
     ''')
+
+    cursor.execute('PRAGMA table_info(messages)')
+    message_columns = [row[1] for row in cursor.fetchall()]
+    if 'message_type' not in message_columns:
+        cursor.execute("ALTER TABLE messages ADD COLUMN message_type TEXT DEFAULT 'text'")
+    if 'resolved' not in message_columns:
+        cursor.execute('ALTER TABLE messages ADD COLUMN resolved INTEGER DEFAULT 0')
     
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS password_reset_tokens (
@@ -621,6 +636,93 @@ def update_coordinates():
     return jsonify({'ok': True})
 
 
+@app.route('/request/<int:request_id>/return', methods=['POST'])
+def toggle_returned(request_id):
+    """Let the borrower flag an item as returned. This doesn't mark it returned right
+    away - it sends a confirmation request to the lender in chat, and the item stays
+    'pending_confirmation' until the lender replies Yes or No."""
+    if 'user_id' not in session:
+        return jsonify({'error': 'unauthorized'}), 401
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT r.*, i.name as item_name, u.username as borrower_name
+        FROM requests r
+        JOIN items i ON r.item_id = i.id
+        JOIN users u ON r.borrower_id = u.id
+        WHERE r.id = ?
+    ''', (request_id,))
+    req = cursor.fetchone()
+    if not req or req['borrower_id'] != session['user_id']:
+        conn.close()
+        return jsonify({'error': 'unauthorized'}), 403
+
+    data = request.get_json(silent=True) or {}
+    if data.get('returned') and req['return_status'] == 'not_returned':
+        cursor.execute('UPDATE requests SET return_status = ? WHERE id = ?', ('pending_confirmation', request_id))
+        cursor.execute('''
+            INSERT INTO messages (request_id, sender_id, content, message_type)
+            VALUES (?, ?, ?, 'return_request')
+        ''', (request_id, session['user_id'],
+              '{} marked "{}" as returned. Did you receive it back?'.format(req['borrower_name'], req['item_name'])))
+        conn.commit()
+
+    cursor.execute('SELECT return_status, returned_at FROM requests WHERE id = ?', (request_id,))
+    updated = cursor.fetchone()
+    conn.close()
+
+    return jsonify({'return_status': updated['return_status'], 'returned_at': updated['returned_at']})
+
+
+@app.route('/request/<int:request_id>/confirm-return', methods=['POST'])
+def confirm_return(request_id):
+    """Lender confirms or denies the borrower's return claim, from a button in the chat."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT r.*, i.owner_id
+        FROM requests r
+        JOIN items i ON r.item_id = i.id
+        WHERE r.id = ?
+    ''', (request_id,))
+    req = cursor.fetchone()
+
+    if not req or req['owner_id'] != session['user_id']:
+        conn.close()
+        return "Unauthorized", 403
+
+    if req['return_status'] == 'pending_confirmation':
+        action = request.form.get('action')
+        cursor.execute('''
+            UPDATE messages SET resolved = 1
+            WHERE request_id = ? AND message_type = 'return_request' AND resolved = 0
+        ''', (request_id,))
+
+        if action == 'yes':
+            returned_at = datetime.now().strftime('%Y-%m-%d')
+            cursor.execute('UPDATE requests SET return_status = ?, returned_at = ? WHERE id = ?',
+                           ('returned', returned_at, request_id))
+            cursor.execute('''
+                INSERT INTO messages (request_id, sender_id, content, message_type)
+                VALUES (?, ?, ?, 'return_confirmed')
+            ''', (request_id, session['user_id'], 'Great, the return has been confirmed!'))
+        elif action == 'no':
+            cursor.execute('UPDATE requests SET return_status = ? WHERE id = ?', ('not_returned', request_id))
+            cursor.execute('''
+                INSERT INTO messages (request_id, sender_id, content, message_type)
+                VALUES (?, ?, ?, 'return_denied')
+            ''', (request_id, session['user_id'], "Hey, it looks like you haven't returned this item yet. Please check again."))
+
+        conn.commit()
+
+    conn.close()
+    return redirect(url_for('chat', request_id=request_id))
+
+
 @app.route('/profile')
 def profile():
     """Show the user's profile page with owned and borrowed items."""
@@ -639,18 +741,23 @@ def profile():
 
     user_categories = [c.strip() for c in (user['categories'] or '').split(',') if c.strip()]
 
-    cursor.execute("SELECT id, name, photo, category, status FROM items WHERE owner_id = ? AND status != 'requested'", (session['user_id'],))
+    cursor.execute("SELECT id, name, photo, category, description, status FROM items WHERE owner_id = ? AND status != 'requested'", (session['user_id'],))
     my_items = cursor.fetchall()
 
     cursor.execute('''
-        SELECT i.id, i.name, i.photo, i.category, u.username as owner_name, r.status
+        SELECT i.id, i.name, i.photo, i.category, i.description, u.username as owner_name, u.location as owner_location,
+               r.id as request_id, r.status, r.return_status, r.returned_at
         FROM requests r
         JOIN items i ON r.item_id = i.id
         JOIN users u ON i.owner_id = u.id
         WHERE r.borrower_id = ? AND r.status = 'accepted'
         ORDER BY r.created_at DESC
     ''', (session['user_id'],))
-    borrowed_items = cursor.fetchall()
+    borrowed_items = []
+    for row in cursor.fetchall():
+        item = dict(row)
+        item['returned_at_display'] = format_return_date(item['returned_at'])
+        borrowed_items.append(item)
 
     conn.close()
 
@@ -1027,6 +1134,17 @@ def format_message_time(value):
     except (TypeError, ValueError):
         return value
     return ts.strftime('%H:%M')
+
+
+def format_return_date(value):
+    """Format a stored return date (YYYY-MM-DD) as e.g. 'July 5, 2026'."""
+    if not value:
+        return ''
+    try:
+        d = datetime.strptime(value, '%Y-%m-%d')
+    except (TypeError, ValueError):
+        return value
+    return '{} {}, {}'.format(d.strftime('%B'), d.day, d.year)
 
 
 @app.route('/chat')

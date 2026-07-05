@@ -170,7 +170,15 @@
                     <div class="items-grid">
                         {% if my_items %}
                             {% for item in my_items %}
-                            <a href="{{ url_for('item_detail', item_id=item.id) }}" class="item-card">
+                            <div class="item-card" role="button" tabindex="0"
+                                 data-name="{{ item.name }}"
+                                 data-category="{{ item.category or '' }}"
+                                 data-description="{{ item.description or 'No description provided.' }}"
+                                 data-photo="{% if item.photo %}{{ url_for('static', filename='uploads/' + item.photo) }}{% endif %}"
+                                 data-owner=""
+                                 data-owner-location=""
+                                 data-footer="This is your item"
+                                 onclick="openItemPopup(this)" onkeydown="if(event.key==='Enter'){openItemPopup(this)}">
                                 <div class="item-image">
                                     <div class="item-image-placeholder" {% if item.photo %}style="display:none;"{% endif %}></div>
                                     {% if item.photo %}
@@ -179,7 +187,7 @@
                                     {% endif %}
                                 </div>
                                 <div class="item-name">{{ item.name }}</div>
-                            </a>
+                            </div>
                             {% endfor %}
                         {% else %}
                             <p class="empty-state">No items yet</p>
@@ -191,7 +199,19 @@
                     <div class="items-grid">
                         {% if borrowed_items %}
                             {% for item in borrowed_items %}
-                            <div class="item-card borrowed">
+                            <div class="item-card borrowed {{ item.return_status }}" role="button" tabindex="0"
+                                 data-item-id="{{ item.id }}"
+                                 data-name="{{ item.name }}"
+                                 data-category="{{ item.category or '' }}"
+                                 data-description="{{ item.description or 'No description provided.' }}"
+                                 data-photo="{% if item.photo %}{{ url_for('static', filename='uploads/' + item.photo) }}{% endif %}"
+                                 data-owner="{{ item.owner_name }}"
+                                 data-owner-location="{{ item.owner_location or '' }}"
+                                 data-request-id="{{ item.request_id }}"
+                                 data-return-status="{{ item.return_status }}"
+                                 data-returned-at="{{ item.returned_at or '' }}"
+                                 data-returned-at-display="{{ item.returned_at_display }}"
+                                 onclick="openItemPopup(this)" onkeydown="if(event.key==='Enter'){openItemPopup(this)}">
                                 <div class="item-image">
                                     <div class="item-image-placeholder" {% if item.photo %}style="display:none;"{% endif %}></div>
                                     {% if item.photo %}
@@ -201,7 +221,7 @@
                                 </div>
                                 <div class="item-name">{{ item.name }}</div>
                                 <div class="item-owner">{{ item.owner_name }}</div>
-                                <div class="borrowed-reminder">Remember to return it!</div>
+                                <div class="borrowed-reminder">{% if item.return_status == 'returned' %}Returned on {{ item.returned_at_display }}{% elif item.return_status == 'pending_confirmation' %}Awaiting confirmation{% endif %}</div>
                             </div>
                             {% endfor %}
                         {% else %}
@@ -213,6 +233,31 @@
         </section>
 
         {% include 'footer_nav.html' %}
+    </div>
+
+    <div class="borrowed-item-popup" id="itemPopupModal">
+        <div class="item-detail-modal">
+            <button type="button" class="item-detail-close" onclick="closeItemPopup()" aria-label="Close">&times;</button>
+            <span class="category-tag" id="itemPopupCategory" style="display:none;"></span>
+            <h2 class="item-detail-name" id="itemPopupName"></h2>
+            <div class="item-detail-photo" id="itemPopupPhoto"></div>
+            <p class="item-detail-description" id="itemPopupDescription"></p>
+            <div class="item-detail-footer-row">
+                <p class="item-detail-owner" id="itemPopupOwnerLine">by <span id="itemPopupOwner"></span><br><span id="itemPopupOwnerLocation"></span></p>
+                <div class="return-status-block" id="itemPopupReturnBlock" style="display:none;">
+                    <span class="return-status-text" id="itemPopupReturnText"></span>
+                    <label class="return-toggle" id="itemPopupReturnToggleWrap">
+                        <input type="checkbox" id="itemPopupReturnToggle" onchange="toggleReturnedStatus()">
+                        <span class="return-toggle-slider"></span>
+                    </label>
+                    <span class="return-pending-badge" id="itemPopupPendingBadge" style="display:none;">Awaiting confirmation</span>
+                    <form method="POST" id="borrowAgainForm" style="display:none;">
+                        <button type="submit" class="btn-borrow-again">Borrow again</button>
+                    </form>
+                </div>
+                <span class="item-detail-unavailable" id="itemPopupFooter"></span>
+            </div>
+        </div>
     </div>
 
     <div class="edit-profile-modal" id="editProfileModal">
@@ -284,6 +329,141 @@
             };
             reader.readAsDataURL(input.files[0]);
         }
+    </script>
+
+    <script>
+        var currentPopupCard = null;
+
+        function formatReturnDate(iso) {
+            if (!iso) return '';
+            var parts = iso.split('-');
+            var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+            var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+                          'August', 'September', 'October', 'November', 'December'];
+            return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+        }
+
+        function openItemPopup(card) {
+            currentPopupCard = card;
+            var photo = card.dataset.photo;
+            document.getElementById('itemPopupName').textContent = card.dataset.name;
+            document.getElementById('itemPopupDescription').textContent = card.dataset.description;
+
+            var ownerLineEl = document.getElementById('itemPopupOwnerLine');
+            if (card.dataset.owner) {
+                document.getElementById('itemPopupOwner').textContent = card.dataset.owner;
+                document.getElementById('itemPopupOwnerLocation').textContent = card.dataset.ownerLocation;
+                ownerLineEl.style.display = 'block';
+            } else {
+                ownerLineEl.style.display = 'none';
+            }
+
+            var categoryEl = document.getElementById('itemPopupCategory');
+            if (card.dataset.category) {
+                categoryEl.textContent = card.dataset.category;
+                categoryEl.style.display = 'inline-block';
+            } else {
+                categoryEl.style.display = 'none';
+            }
+
+            var photoEl = document.getElementById('itemPopupPhoto');
+            photoEl.innerHTML = photo ? '<img src="' + photo + '" alt="' + card.dataset.name + '">' : '';
+
+            var modalContent = document.querySelector('#itemPopupModal .item-detail-modal');
+            var footerEl = document.getElementById('itemPopupFooter');
+            var returnBlock = document.getElementById('itemPopupReturnBlock');
+
+            if (card.dataset.requestId) {
+                footerEl.style.display = 'none';
+                returnBlock.style.display = 'flex';
+                document.getElementById('borrowAgainForm').action = '/borrow/' + card.dataset.itemId;
+                updateReturnUI(card.dataset.returnStatus, card.dataset.returnedAt, modalContent);
+            } else {
+                returnBlock.style.display = 'none';
+                footerEl.style.display = 'inline';
+                footerEl.textContent = card.dataset.footer || '';
+                modalContent.classList.remove('unreturned', 'returned-ok', 'pending-return');
+            }
+
+            document.getElementById('itemPopupModal').classList.add('show');
+        }
+
+        function updateReturnUI(returnStatus, returnedAt, modalContent) {
+            var textEl = document.getElementById('itemPopupReturnText');
+            var toggleWrap = document.getElementById('itemPopupReturnToggleWrap');
+            var pendingBadge = document.getElementById('itemPopupPendingBadge');
+            var borrowAgainForm = document.getElementById('borrowAgainForm');
+
+            modalContent.classList.remove('unreturned', 'returned-ok', 'pending-return');
+
+            if (returnStatus === 'returned') {
+                textEl.textContent = returnedAt ? ('Returned on ' + formatReturnDate(returnedAt)) : 'Returned';
+                toggleWrap.style.display = 'none';
+                pendingBadge.style.display = 'none';
+                borrowAgainForm.style.display = 'block';
+                modalContent.classList.add('returned-ok');
+            } else if (returnStatus === 'pending_confirmation') {
+                textEl.textContent = 'Waiting for the lender to confirm…';
+                toggleWrap.style.display = 'none';
+                pendingBadge.style.display = 'inline-block';
+                borrowAgainForm.style.display = 'none';
+                modalContent.classList.add('pending-return');
+            } else {
+                textEl.textContent = 'Remember to return it!';
+                toggleWrap.style.display = 'inline-block';
+                pendingBadge.style.display = 'none';
+                borrowAgainForm.style.display = 'none';
+                document.getElementById('itemPopupReturnToggle').checked = false;
+                modalContent.classList.add('unreturned');
+            }
+        }
+
+        function toggleReturnedStatus() {
+            if (!currentPopupCard) return;
+            var checkbox = document.getElementById('itemPopupReturnToggle');
+            var returned = checkbox.checked;
+            var requestId = currentPopupCard.dataset.requestId;
+            var modalContent = document.querySelector('#itemPopupModal .item-detail-modal');
+
+            fetch('/request/' + requestId + '/return', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ returned: returned })
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                updateReturnUI(data.return_status, data.returned_at, modalContent);
+
+                currentPopupCard.dataset.returnStatus = data.return_status;
+                currentPopupCard.dataset.returnedAt = data.returned_at || '';
+                currentPopupCard.classList.remove('not_returned', 'pending_confirmation', 'returned');
+                currentPopupCard.classList.add(data.return_status);
+
+                var reminderEl = currentPopupCard.querySelector('.borrowed-reminder');
+                if (reminderEl) {
+                    if (data.return_status === 'returned') {
+                        reminderEl.textContent = 'Returned on ' + formatReturnDate(data.returned_at);
+                    } else if (data.return_status === 'pending_confirmation') {
+                        reminderEl.textContent = 'Awaiting confirmation';
+                    } else {
+                        reminderEl.textContent = '';
+                    }
+                }
+            })
+            .catch(function() {
+                checkbox.checked = false;
+            });
+        }
+
+        function closeItemPopup() {
+            document.getElementById('itemPopupModal').classList.remove('show');
+        }
+        window.addEventListener('click', function(event) {
+            var modal = document.getElementById('itemPopupModal');
+            if (event.target === modal) {
+                closeItemPopup();
+            }
+        });
     </script>
 
     <script>
