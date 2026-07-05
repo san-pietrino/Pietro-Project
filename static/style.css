@@ -2126,8 +2126,9 @@ footer {
     width: 30px;
     height: 30px;
     stroke: var(--color-blue);
-    stroke-width: 3;
-    stroke-linecap: round;
+    stroke-opacity: 0.6;
+    stroke-width: 8.5;
+    stroke-linecap: butt;
     fill: none;
 }
 .bottom-nav .nav-item.center-action.active {
