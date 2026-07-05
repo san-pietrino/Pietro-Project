@@ -312,6 +312,8 @@ def register():
         password_confirm = request.form.get('password_confirm')
         location = request.form.get('location')
         categories = request.form.getlist('categories')
+        latitude = request.form.get('latitude', type=float)
+        longitude = request.form.get('longitude', type=float)
         
         # Validation
         if not username or not email or not password:
@@ -351,8 +353,8 @@ def register():
             hashed_password = generate_password_hash(password)
             categories_str = ','.join(categories)
             cursor.execute(
-                'INSERT INTO users (username, email, password, location, categories) VALUES (?, ?, ?, ?, ?)',
-                (username, email, hashed_password, location, categories_str)
+                'INSERT INTO users (username, email, password, location, categories, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                (username, email, hashed_password, location, categories_str, latitude, longitude)
             )
             conn.commit()
             return redirect(url_for('login'))
@@ -661,29 +663,6 @@ PROFILE_CATEGORIES = [
     'Events & Parties', 'Creative & Hobby', 'Gaming', 'Home & Living',
     'Mobility', 'Baby & Child', 'Pets'
 ]
-
-
-@app.route('/profile/coordinates', methods=['POST'])
-def update_coordinates():
-    """Silently store the logged-in user's device coordinates, used only to sort
-    search results by distance. Never exposed to other users."""
-    if 'user_id' not in session:
-        return jsonify({'error': 'unauthorized'}), 401
-
-    data = request.get_json(silent=True) or {}
-    latitude = data.get('latitude')
-    longitude = data.get('longitude')
-    if not isinstance(latitude, (int, float)) or not isinstance(longitude, (int, float)):
-        return jsonify({'error': 'invalid coordinates'}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('UPDATE users SET latitude = ?, longitude = ? WHERE id = ?',
-                   (latitude, longitude, session['user_id']))
-    conn.commit()
-    conn.close()
-
-    return jsonify({'ok': True})
 
 
 @app.route('/request/<int:request_id>/return', methods=['POST'])

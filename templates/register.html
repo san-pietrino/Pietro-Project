@@ -122,6 +122,8 @@
                         {% endfor %}
                     </div>
                 </div>
+                <input type="hidden" id="latitude" name="latitude">
+                <input type="hidden" id="longitude" name="longitude">
                 <button type="submit" class="btn-primary">Sign Up</button>
             </form>
             <p class="register-link">Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
@@ -146,6 +148,38 @@
             }
         }
 
+    </script>
+
+    <script>
+        (function() {
+            // Ask for device coordinates once, at sign-up time, so search results
+            // can be sorted by distance later. Never asked again after this.
+            if (!('geolocation' in navigator)) return;
+            navigator.geolocation.getCurrentPosition(function(position) {
+                document.getElementById('latitude').value = position.coords.latitude;
+                document.getElementById('longitude').value = position.coords.longitude;
+
+                // Best-effort: fill in the "Your Location" text field too, via reverse
+                // geocoding, so the user doesn't have to type it. Never overwrites
+                // anything the user has already typed themselves.
+                var locationInput = document.getElementById('location');
+                if (!locationInput || locationInput.value) return;
+                fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=16&lat=' +
+                      position.coords.latitude + '&lon=' + position.coords.longitude)
+                    .then(function(response) { return response.json(); })
+                    .then(function(data) {
+                        if (locationInput.value || !data || !data.address) return;
+                        var addr = data.address;
+                        var neighborhood = addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district;
+                        var city = addr.city || addr.town || addr.village || addr.municipality;
+                        var parts = [neighborhood, city].filter(Boolean);
+                        if (parts.length) {
+                            locationInput.value = parts.join(', ');
+                        }
+                    })
+                    .catch(function() {});
+            }, function() {}, { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 });
+        })();
     </script>
 </body>
 </html>

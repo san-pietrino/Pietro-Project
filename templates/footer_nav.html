@@ -140,25 +140,3 @@
         });
     });
 </script>
-
-<script>
-    (function() {
-        // Ask once per browser session for device coordinates, used only to sort
-        // search results by distance server-side. Never shown to other users.
-        if (!('geolocation' in navigator) || sessionStorage.getItem('locationSent')) return;
-
-        navigator.geolocation.getCurrentPosition(function(position) {
-            sessionStorage.setItem('locationSent', '1');
-            fetch('/profile/coordinates', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude
-                })
-            });
-        }, function() {
-            sessionStorage.setItem('locationSent', '1');
-        }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 });
-    })();
-</script>
